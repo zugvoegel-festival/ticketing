@@ -8,10 +8,14 @@
   # Use `nix flake show` to view outputs
   outputs = { self, nixpkgs, disko }: {
 
-    # Define modules
-    nixosModules = {
-      pretix = import ./pretix.nix;
-    };
+    # Output all modules in ./modules to flake. Modules should be in
+    # individual subdirectories and contain a default.nix file
+    nixosModules = builtins.listToAttrs (map
+      (x: {
+        name = x;
+        value = import (./modules + "/${x}");
+      })
+      (builtins.attrNames (builtins.readDir ./modules)));
 
     # Define system configurations
     nixosConfigurations = {
