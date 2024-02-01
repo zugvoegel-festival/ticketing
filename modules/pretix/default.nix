@@ -14,8 +14,20 @@ in
     host = mkOption {
       type = types.str;
       default = null;
-      example = "tickets.myhostname.com";
+      example = "demo.megaclan3000.de";
       description = "Host serving pretix web service";
+    };
+    acmeMail = mkOption {
+      type = types.str;
+      default = null;
+      example = "pretix-admin@zugvoegelfestival.org";
+      description = "Email for SSL Certificate Renewal";
+    };
+    ticketMail = mkOption {
+      type = types.str;
+      default = null;
+      example = "no-reply@zugvoegelfestival.org";
+      description = "From Email from which tickets will be send.";
     };
   };
 
@@ -102,7 +114,7 @@ in
 
                   mail = {
                     # ; See config file documentation for more options
-                    from = "tickets@${cfg.host}";
+                    from = "${cfg.ticketMail}";
                     # ; This is the default IP address of your docker host in docker's virtual
                     # ; network. Make sure postfix listens on this address.
                     host = "redis";
@@ -141,7 +153,7 @@ in
 
     security.acme = {
       acceptTerms = true;
-      defaults.email = "foo@bar.com";
+      defaults.email = "${cfg.acmeMail}";
     };
 
     # nginx reverse proxy
