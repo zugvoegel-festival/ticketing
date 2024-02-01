@@ -12,6 +12,10 @@
 
     # Set the host
     host = "demo.megaclan3000.de";
+    # Set the acme mail
+    acmeMail = "pretix-admin@zugvoegelfestival.org";
+    # Set the ticket mail
+    ticketMail = "no-reply@zugvoegelfestival.org"
   };
 
   # Acme for certificates
