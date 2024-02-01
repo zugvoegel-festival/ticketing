@@ -36,6 +36,7 @@ with lib;
   config = {
     services = {
       resticBackup = {
+        enable = true;
         paths = config.options.backup;
         passwordFile = config.options.resticPasswordFile;
         repository = "onedrive:${config.options.onedriveConfigFile}:${config.options.onedrivePath}";
