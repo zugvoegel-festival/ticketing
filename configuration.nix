@@ -1,11 +1,18 @@
-{ config, pkgs, ... }: {
+{ pkgs, ... }: {
 
-  # Mostly auto-generated
-  # nixos-generate-config --show-hardware-config
   imports = [
     ./hardware-configuration.nix
-    ./pretix.nix
   ];
+
+  # Use our custom module options
+  zugvoegel.services.pretix = {
+
+    # Actually use our module
+    enable = true;
+
+    # Set the host
+    host = "demo.megaclan3000.de";
+  };
 
   # Acme for certificates
   security.acme = {
