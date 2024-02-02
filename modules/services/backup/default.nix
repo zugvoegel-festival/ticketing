@@ -4,12 +4,12 @@ let
   cfg = config.zugvoegel.services.backup;
 in
 {
-  options.zugvoegel.services.backup.restic = {
+  options.zugvoegel.services.backup = {
     # Define option to enable the pretix config
-    enable = mkEnableOption "Pretix ticketing service";
+    enable = mkEnableOption "ZV Ticketing Backup";
 
     # Define options for restic
-    backupDir = mkOption {
+    backupDirs = mkOption {
       type = types.listOf types.str;
       default = [ ];
       example = [ "/path/to/backup/directory" ];
@@ -41,7 +41,6 @@ in
   config = mkIf cfg.enable {
     services = {
       resticBackup = {
-        enable = true;
         paths = config.options.backupDir;
         passwordFile = config.options.resticPasswordFile;
         repository = "onedrive:${config.options.onedriveConfigFile}:${config.options.onedrivePath}";

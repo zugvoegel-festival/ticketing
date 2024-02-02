@@ -3,24 +3,25 @@
   imports = [
     ./hardware-configuration.nix
   ];
-
-  # Use our custom module options
-  zugvoegel.services.pretix = {
-    # Actually use our module
-    enable = true;
-    # Set the host
-    host = "demo.megaclan3000.de";
-    # Set the acme mail
-    acmeMail = "pretix-admin@zugvoegelfestival.org";
-    # Set the ticket mail
-    ticketMail = "no-reply@zugvoegelfestival.org";
-  };
-  zugvoegel.services.backup.restic = {
-    backup = [ "/srv/pretix" ];
-    resticPasswordFile = "";
-    onedriveConfigFile = "";
-    onedrivePath = "";
-  };
+  zugvoegel =
+    {
+      services.pretix = {
+        # Actually use our module
+        enable = true;
+        # Set the host
+        host = "demo.megaclan3000.de";
+        # Set the acme mail
+        acmeMail = "pretix-admin@zugvoegelfestival.org";
+        # Set the ticket mail
+        ticketMail = "no-reply@zugvoegelfestival.org";
+      };
+      services.backup = {
+        backupDirs = [ "/srv/pretix" ];
+        resticPasswordFile = "";
+        onedriveConfigFile = "";
+        onedrivePath = "";
+      };
+    };
 
   # "Install" git
   environment.systemPackages = [ pkgs.git ];
