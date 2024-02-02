@@ -42,7 +42,7 @@ in
     services = {
       resticBackup = {
         enable = true;
-        paths = config.options.backup;
+        paths = config.options.backupDir;
         passwordFile = config.options.resticPasswordFile;
         repository = "onedrive:${config.options.onedriveConfigFile}:${config.options.onedrivePath}";
         initialize = true; # initializes the repo, don't set if you want manual control
