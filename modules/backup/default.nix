@@ -1,56 +1,50 @@
-{ config, lib, pkgs, ... }:
+{ lib, pkgs, config, ... }:
 with lib;
-let
-  cfg = config.zugvoegel.services.backup;
+let cfg = config.zugvoegel.services.backup;
 in
 {
   options.zugvoegel.services.backup = {
-    # Define option to enable the pretix config
-    enable = mkEnableOption "ZV Ticketing Backup";
+    enable = mkEnableOption "restic backups";
 
-    # Define options for restic
     backupDirs = mkOption {
       type = types.listOf types.str;
       default = [ ];
-      example = [ "/path/to/backup/directory" ];
-      description = "Directories to be backed up using restic";
+      example = [ "/home/zugvoegel/Notes" ];
+      description = "Paths to backup to offsite storage";
     };
 
-    resticPasswordFile = mkOption {
-      type = types.str;
-      default = null;
-      example = "/etc/restic/password.txt";
-      description = "Path to the file containing the restic repository password";
-    };
-
-    onedriveConfigFile = mkOption {
-      type = types.str;
-      default = null;
-      example = "/etc/restic/onedrive.conf";
-      description = "Path to the rclone configuration file for OneDrive";
-    };
-
-    onedrivePath = mkOption {
-      type = types.str;
-      default = null;
-      example = "/my/onedrive/destination";
-      description = "Path in your OneDrive";
+    backup-paths-exclude = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      example = [ "/home/zugvoegel/cache" ];
+      description = "Paths to exclude from backup";
     };
   };
 
   config = mkIf cfg.enable {
-    services = {
-      resticBackup = {
-        paths = config.options.backupDir;
-        passwordFile = config.options.resticPasswordFile;
-        repository = "onedrive:${config.options.onedriveConfigFile}:${config.options.onedrivePath}";
-        initialize = true; # initializes the repo, don't set if you want manual control
-        timerConfig = {
-          OnCalendar = "daily";
-          Persistent = true;
+
+    services.restic.backups =
+      let
+        # host = config.networking.hostName;
+        restic-ignore-file = pkgs.writeTextFile {
+          name = "restic-ignore-file";
+          text = builtins.concatStringsSep "\n" cfg.backup-paths-exclude;
         };
-        # Additional restic configuration can be added here
+      in
+      {
+        s3-offsite = {
+          paths = cfg.backupDirs;
+          repository = "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp";
+          environmentFile = "/var/secrets/backblaze-credentials";
+          passwordFile = "/var/secrets/restic";
+
+          extraBackupArgs = [
+            "--exclude-file=${restic-ignore-file}"
+            "--one-file-system"
+            # "--dry-run"
+            "-vv"
+          ];
+        };
       };
-    };
   };
 }

@@ -16,10 +16,8 @@
         ticketMail = "no-reply@zugvoegelfestival.org";
       };
       services.backup = {
+        enable = true;
         backupDirs = [ "/srv/pretix" ];
-        resticPasswordFile = "";
-        onedriveConfigFile = "";
-        onedrivePath = "";
       };
     };
 
