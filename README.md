@@ -1,11 +1,4 @@
-# nixos-netcup-demo
-
-Material for a short presentation and demo on how to use NixOS to deploy a
-simple service + reverse proxy using flakes. Intended as an opinionated
-tutorial. Slides use the [slides](https://github.com/maaslalani/slides)
-presentation tool.
-
-## Demo server setup
+# Ticketing Deployment using Pretix on NixOS
 
 The following was tested on [netcup](https://netcup.de) using a `VPS 500 G10s`
 server. Other providers or server variants will probably work too, but are
@@ -20,9 +13,9 @@ Setup public-key based authentication on the server and run nixos-anywhere for
 intial deployment. The public key will persist after infection.
 
 ```
-ssh-copy-id -o PubkeyAuthentication=no -o PreferredAuthentications=password  root@94.16.117.189
-ssh root@94.16.117.189
-nix run github:numtide/nixos-anywhere -- --flake .\#awesome-server-01 root@92.60.37.228
+ssh-copy-id -o PubkeyAuthentication=no -o PreferredAuthentications=password  root@92.60.37.228
+ssh root@92.60.37.228
+nix run github:numtide/nixos-anywhere -- --flake .\#pretix-server-01 root@92.60.37.228
 ```
 
 ### Further deployments (Server is NixOS)
@@ -34,8 +27,8 @@ generated as the DNS challenge will fail.
 
 Further deployments can be done with:
 
-```
-nixos-rebuild switch --flake '.#awesome-server-01' --target-host root@94.16.117.189 
+```sh
+nixos-rebuild switch --flake '.#pretix-server-01' --target-host root@92.60.37.228 
 ```
 
 Note: Other deployment methods are possible and might be more suitable for

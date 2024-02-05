@@ -32,6 +32,7 @@
           disko.nixosModules.disko
           self.nixosModules.pretix # Import our module
           sops-nix.nixosModules.sops
+          { imports = builtins.attrValues self.nixosModules; }
         ];
       };
     };
