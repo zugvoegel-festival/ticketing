@@ -7,14 +7,12 @@
     disko.url = "github:nix-community/disko";
 
     # Secrets management
-    agenix.url = "github:ryantm/agenix";
-    agenix.inputs.nixpkgs.follows = "nixpkgs";
-    agenix.inputs.darwin.follows = "";
-
+    sops-nix.url = "github:Mic92/sops-nix";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   # Use `nix flake show` to view outputs
-  outputs = { self, nixpkgs, disko, agenix }: {
+  outputs = { self, nixpkgs, disko, sops-nix }: {
 
     # Output all modules in ./modules to flake. Modules should be in
     # individual subdirectories and contain a default.nix file
@@ -32,8 +30,8 @@
         modules = [
           ./configuration.nix
           disko.nixosModules.disko
-          agenix.nixosModules.default
           self.nixosModules.pretix # Import our module
+          sops-nix.nixosModules.sops
         ];
       };
     };

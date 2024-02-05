@@ -45,3 +45,10 @@ for simplicity. Other options are using a deployment tool like
 [lollypops](https://github.com/pinpox/lollypops) or uploading a pre-backed
 `.qcow2` image, which can be generated from a flake.
 
+### Secrets management
+
+Secrets are encrypted and managed with [sops-nix](https://github.com/Mic92/sops-nix)
+
+```sh
+nix-shell -p sops --run "sops secrets/example.yaml"
+```
