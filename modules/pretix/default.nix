@@ -4,9 +4,7 @@ let
   cfg = config.zugvoegel.services.pretix;
 in
 {
-
   options.zugvoegel.services.pretix = {
-
     # Define option to enable the pretix config
     enable = mkEnableOption "Pretix ticketing service";
 

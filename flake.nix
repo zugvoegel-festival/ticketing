@@ -24,7 +24,7 @@
         modules = [
           ./configuration.nix
           disko.nixosModules.disko
-          self.nixosModules.pretix # Import our module
+          { imports = builtins.attrValues self.nixosModules; }
         ];
       };
     };
