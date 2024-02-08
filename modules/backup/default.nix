@@ -30,20 +30,24 @@ in
       let
         # host = config.networking.hostName;
         restic-ignore-file = pkgs.writeTextFile {
-          name = "restic-ignore-file";
-          text = builtins.concatStringsSep "\n" cfg.backup-paths-exclude;
+          name = "
+        restic-ignore-file ";
+          text = builtins.concatStringsSep "\
+            n "
+            cfg.backup-paths-exclude;
         };
       in
       {
         s3-offsite = {
           paths = cfg.backupDirs;
-          repository = "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp";
+          repository = " s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp ";
           environmentFile = config.sops.secrets.backup-envfile.path;
           passwordFile = config.sops.secrets.backup-passwordfile.path;
-          backupPrepareCommand = '' ${pkgs.postgresql}/bin/pg_dumpall -U postgres -h postgresql > "$(date +"%Y-%m-%d" ).sql" '';
+          backupPrepareCommand = '' ${pkgs.postgresql}/bin/pg_dumpall -U postgres -h postgresql > "$
+        (date + "%Y-%m-%d").sql " '';
 
           extraBackupArgs = [
-            "--exclude-file = ${restic-ignore-file}"
+            " - -exclude-file = ${restic-ignore-file}"
             " - -one-file-system "
             # " - -dry-run "
             " - vv "
@@ -53,6 +57,7 @@ in
       };
   };
 }
+
 
 
 
