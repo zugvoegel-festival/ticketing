@@ -10,10 +10,15 @@
         enable = true;
         # Set the host
         host = "demo.megaclan3000.de";
+
+        instanceName = "Zugvögel Ticketshop";
         # Set the acme mail
         acmeMail = "pretix-admin@zugvoegelfestival.org";
+
         # Set the ticket mail
-        ticketMail = "no-reply@zugvoegelfestival.org";
+        fromMail = "no-reply@zugvoegelfestival.org";
+        fromMailPassword = config.sops.secrets.fromMailPassword.path;
+
       };
       services.backup = {
         enable = true;

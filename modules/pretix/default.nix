@@ -15,17 +15,54 @@ in
       example = "demo.megaclan3000.de";
       description = "Host serving pretix web service";
     };
+
+    instanceName = mkOption {
+      type = types.str;
+      default = "My Pretix Instance";
+      example = "Awesome Pretix";
+      description = "Name of the Pretix instance";
+    };
     acmeMail = mkOption {
       type = types.str;
       default = null;
-      example = "pretix-admin@zugvoegelfestival.org";
+      example = "admin@pretix.eu";
       description = "Email for SSL Certificate Renewal";
     };
-    ticketMail = mkOption {
+    fromMail = mkOption {
       type = types.str;
       default = null;
-      example = "no-reply@zugvoegelfestival.org";
+      example = "no-reply@pretix.eu";
       description = "From Email from which tickets will be send.";
+    };
+    fromMailPassword = mkOption {
+      type = types.str;
+      default = null;
+      example = "###########";
+      description = "Password of you mail";
+    };
+    fromMailUser = mkOption {
+      type = types.str;
+      default = null;
+      example = "mailuser";
+      description = "User of you mail";
+    };
+    fromMailPort = mkOption {
+      type = types.integer;
+      default = 587;
+      example = 587;
+      description = "SMTP Port of you mail";
+    };
+    fromMMailTLS = mkOption {
+      type = types.str;
+      default = "off";
+      example = "off";
+      description = "on/off to activate/deactivate";
+    };
+    fromMailSSL = mkOption {
+      type = types.str;
+      default = "off";
+      example = "off";
+      description = "on/off to activate/deactivate";
     };
   };
 
@@ -67,7 +104,6 @@ in
       {
         backend = "docker"; # Podman is the default backend.
         containers = {
-
           redis = {
             image = "redis:7.2.3";
             extraOptions = [ "--network=pretix-net" ];
@@ -83,13 +119,12 @@ in
           };
 
           pretix =
-
             let
               pretix-config = pkgs.writeTextFile {
                 name = "pretix.cfg";
                 text = pkgs.lib.generators.toINI { } {
                   pretix = {
-                    instance_name = "My pretix installation";
+                    instance_name = ${cfg.instance_name};
                     url = "https://${cfg.host}";
                     currency = "EUR";
                     # ; DO NOT change the following value, it has to be set to the location of the
@@ -104,7 +139,7 @@ in
                     name = "pretix";
                     user = "postgres";
                     # ; Replace with the password you chose above
-                    password = "postgres";
+                    password = config.sops.secrets.postgressPassword.path;
                     # ; In most docker setups, 172.17.0.1 is the address of the docker host. Adjust
                     # ; this to wherever your database is running, e.g. the name of a linked container.
                     host = "postgresql";
@@ -112,10 +147,13 @@ in
 
                   mail = {
                     # ; See config file documentation for more options
-                    from = "${cfg.ticketMail}";
-                    # ; This is the default IP address of your docker host in docker's virtual
-                    # ; network. Make sure postfix listens on this address.
-                    host = "redis";
+                    from = "${cfg.fromMail}";
+                    host = "${cfg.fromMailHost}";
+                    user = "${cfg.fromMailUser}";
+                    password = "${cfg.fromMailPassword}";
+                    port = "${cfg.fromMailPort}";
+                    tls = "${cfg.fromMMailTLS}";
+                    ssl = "${cfg.fromMMailSSL}";
                   };
 
                   redis = {
