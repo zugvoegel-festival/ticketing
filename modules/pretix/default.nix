@@ -28,45 +28,11 @@ in
       example = "admin@pretix.eu";
       description = "Email for SSL Certificate Renewal";
     };
-    fromMail = mkOption {
-      type = types.str;
-      default = null;
-      example = "no-reply@pretix.eu";
-      description = "From Email from which tickets will be send.";
-    };
-    fromMailPassword = mkOption {
-      type = types.str;
-      default = null;
-      example = "###########";
-      description = "Password of you mail";
-    };
-    fromMailUser = mkOption {
-      type = types.str;
-      default = null;
-      example = "mailuser";
-      description = "User of you mail";
-    };
-    fromMailPort = mkOption {
-      type = types.integer;
-      default = 587;
-      example = 587;
-      description = "SMTP Port of you mail";
-    };
-    fromMMailTLS = mkOption {
-      type = types.str;
-      default = "off";
-      example = "off";
-      description = "on/off to activate/deactivate";
-    };
-    fromMailSSL = mkOption {
-      type = types.str;
-      default = "off";
-      example = "off";
-      description = "on/off to activate/deactivate";
-    };
   };
 
   config = mkIf cfg.enable {
+
+    sops.secrets.pretix-envfile = { };
 
     systemd.services.init-pretix-net = {
       description = "Create the network bridge pretix-net";
@@ -124,7 +90,7 @@ in
                 name = "pretix.cfg";
                 text = pkgs.lib.generators.toINI { } {
                   pretix = {
-                    instance_name = ${cfg.instance_name};
+                    instance_name = "${cfg.instanceName}";
                     url = "https://${cfg.host}";
                     currency = "EUR";
                     # ; DO NOT change the following value, it has to be set to the location of the
@@ -138,23 +104,9 @@ in
                     backend = "postgresql";
                     name = "pretix";
                     user = "postgres";
-                    # ; Replace with the password you chose above
-                    password = config.sops.secrets.postgressPassword.path;
-                    # ; In most docker setups, 172.17.0.1 is the address of the docker host. Adjust
-                    # ; this to wherever your database is running, e.g. the name of a linked container.
                     host = "postgresql";
                   };
 
-                  mail = {
-                    # ; See config file documentation for more options
-                    from = "${cfg.fromMail}";
-                    host = "${cfg.fromMailHost}";
-                    user = "${cfg.fromMailUser}";
-                    password = "${cfg.fromMailPassword}";
-                    port = "${cfg.fromMailPort}";
-                    tls = "${cfg.fromMMailTLS}";
-                    ssl = "${cfg.fromMMailSSL}";
-                  };
 
                   redis = {
                     location = "redis://redis:6379";
@@ -180,7 +132,7 @@ in
                 "${pretix-config}:/etc/pretix/pretix.cfg"
                 # "/var/lib/pretix-data/data:/data"
               ];
-
+              environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
               ports = [ "12345:80" ];
               extraOptions = [ "--network=pretix-net" ];
             };
