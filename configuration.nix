@@ -21,6 +21,8 @@
       };
     };
 
+  sops.defaultSopsFile = ./secrets/example.yaml;
+
   # "Install" git
   environment.systemPackages = [ pkgs.git ];
 

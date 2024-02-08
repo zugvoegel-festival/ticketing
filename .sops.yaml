@@ -1,7 +1,8 @@
 keys:
   - &user_pinpox 3D65EA322A8D9D6FB657DF2EA5BCEFD22D30118A
   - &server_pretix age1spav05lfhsl0z4t2ds2sl8ncwxhdcq2e8t0ruwgzdm45xm2m8fvqmgwqkd
-  - &user_manuliner age1scrzg0chgs9a0ts7xpdl7zdtusphatxzgsf8jjk7m4yjgdmfzcls5crl6v
+  - &user_manuliner1 age1scrzg0chgs9a0ts7xpdl7zdtusphatxzgsf8jjk7m4yjgdmfzcls5crl6v
+  - &user_manuliner2 age1r2nvjx5m4dq9hgakeuk9gcf6y37z3g5n87u3t4sh9ykzzk2dpg4qmrqxs8
     # = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICgmdQGbYprfoyrtNvgfrraaIco47J7NN+XoHXSSySSQ";
 creation_rules:
   - path_regex: secrets/[^/]+\.yaml$
@@ -9,5 +10,6 @@ creation_rules:
     - pgp:
       - *user_pinpox
       age:
-      - *user_manuliner
+      - *user_manuliner1
+      - *user_manuliner2
       - *server_pretix

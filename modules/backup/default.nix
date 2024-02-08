@@ -23,6 +23,10 @@ in
 
   config = mkIf cfg.enable {
 
+
+    sops.secrets.backup-envfile = { };
+    sops.secrets.backup-passwordfile = { };
+
     services.restic.backups =
       let
         # host = config.networking.hostName;
@@ -35,8 +39,8 @@ in
         s3-offsite = {
           paths = cfg.backupDirs;
           repository = "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp";
-          environmentFile = "/var/secrets/backblaze-credentials";
-          passwordFile = "/var/secrets/restic";
+          environmentFile = config.sops.secrets.backup-envfile.path;
+          passwordFile = config.sops.secrets.backup-passwordfile.path;
 
           extraBackupArgs = [
             "--exclude-file=${restic-ignore-file}"
