@@ -43,8 +43,11 @@ in
           repository = " s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp ";
           environmentFile = config.sops.secrets.backup-envfile.path;
           passwordFile = config.sops.secrets.backup-passwordfile.path;
-          backupPrepareCommand = '' ${pkgs.postgresql}/bin/pg_dumpall -U postgres -h postgresql > "$
-        (date + "%Y-%m-%d").sql " '';
+          backupPrepareCommand = '' ${pkgs.postgresql}/bin/pg_dumpall -U postgres -h postgresql > "$(date + "%Y-%m-%d").sql " '';
+          backupCleanupCommand = '' rm "$(date + "%Y-%m-%d").sql " '';
+          OnCalendar = "00:05";
+          Persistent = true;
+          RandomizedDelaySec = "5h";
 
           extraBackupArgs = [
             " - -exclude-file = ${restic-ignore-file}"
