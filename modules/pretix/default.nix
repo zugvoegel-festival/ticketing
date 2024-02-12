@@ -45,9 +45,9 @@ in
       let
         restart-all-pretix = pkgs.writeShellScriptBin "restart-all-pretix" /* sh */
           ''
-            sysstemctl stop docker-postgresql.service docker-pretix.service docker-redis.service
-            sysstemctl restart init-pretix-net.service
-            sysstemctl start docker-postgresql.service docker-pretix.service docker-redis.service
+            systemctl stop docker-postgresql.service docker-pretix.service docker-redis.service
+            systemctl restart init-pretix-net.service
+            systemctl start docker-postgresql.service docker-pretix.service docker-redis.service
           '';
 
         nuke-docker = pkgs.writeShellScriptBin "nuke-docker" /* sh */
