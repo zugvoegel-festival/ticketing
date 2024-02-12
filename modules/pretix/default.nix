@@ -58,14 +58,14 @@ in
 
     virtualisation.oci-containers =
       let
-          finalImageName = "manulinger/zv-ticketing";
+        finalImageName = "manulinger/zv-ticketing";
 
         image-pretix = pkgs.dockerTools.pullImage {
-          inherit finalImageName;
           imageName = "manulinger/zv-ticketing";
-          imageDigest = "sha256:3d72d3939cb144ca87a523d5f15b59112159c3d053d8605ea49681dac45822d6";
-          sha256 = "112vnqvks167kmg66jmd8g7x3xlnjq729zhfdqhl301fx6dxzmya";
-          finalImageTag = "final";
+          imageDigest = "sha256:58ee08a87a1469d956ddc55bc8f55b1bbbcc18c2fe81142a17c6f45554cea287";
+          sha256 = "1ml5p54wqqs8ibc9xfdpbaqsjg7p6hhn81c7sdkizbriajm79aj5";
+          finalImageName = "manulinger/zv-ticketing";
+          finalImageTag = "latest";
         };
       in
 
