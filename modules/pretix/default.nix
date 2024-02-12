@@ -59,11 +59,11 @@ in
     virtualisation.oci-containers =
       let
         image-pretix = pkgs.dockerTools.pullImage {
-          imageName = "pretix/standalone";
-          imageDigest = "sha256:f4e62cf46db9c72a5adc1fdc3fb6005f170e17e69c65ccf1d0760b6f43ffe995";
-          sha256 = "17jszn49wn7mj8zrrai9z55yh6n83c726hdnjhasvc9c857lssxr";
-          finalImageName = "pretix/standalone";
-          finalImageTag = "2023.10.0";
+          imageName = "manulinger/zv-ticketing";
+          imageDigest = "sha256:3a92a26f34b386a5427cf2d561b7090ca8321805e7b52345aa1ab2e005f892b5";
+          sha256 = "0rci5gh1b4bjwv8a1x3fqavlrp7p0599855696fgbpdhf0gjax13";
+          finalImageName = "manulinger/zv-ticketing";
+          finalImageTag = "latest";
         };
       in
 
