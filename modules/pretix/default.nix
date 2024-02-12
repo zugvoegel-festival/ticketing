@@ -60,7 +60,7 @@ in
       let
         image-pretix = pkgs.dockerTools.pullImage {
           imageName = "manulinger/zv-ticketing";
-          imageDigest = "sha256:3a92a26f34b386a5427cf2d561b7090ca8321805e7b52345aa1ab2e005f892b5";
+          imageDigest = "sha256:67cf7cdd8d393485848a2a0e3827184188c6cdfe230c34f73f4cc14515c1d53b";
           sha256 = "0rci5gh1b4bjwv8a1x3fqavlrp7p0599855696fgbpdhf0gjax13";
           finalImageName = "manulinger/zv-ticketing";
           finalImageTag = "latest";
