@@ -58,7 +58,6 @@ in
       in
       [ restart-all-pretix nuke-docker ];
 
-
     sops.secrets.pretix-envfile = { };
 
     systemd.services.init-pretix-net = {
@@ -100,55 +99,21 @@ in
           };
         };
 
-        pretix =
-          let
-            pretix-config = pkgs.writeTextFile {
-              name = "pretix.cfg";
-              text = pkgs.lib.generators.toINI { } {
-                pretix = {
-                  instance_name = "${cfg.instanceName}";
-                  url = "https://${cfg.host}";
-                  currency = "EUR";
-                  # ; DO NOT change the following value, it has to be set to the location of the
-                  # ; directory *inside* the docker container
-                  datadir = "/data";
-                  trust_x_forwarded_for = "on";
-                  trust_x_forwarded_proto = "on";
-                };
-
-                database = {
-                  backend = "postgresql";
-                  name = "pretix";
-                  user = "postgres";
-                  host = "postgresql";
-                };
-
-                redis = {
-                  location = "redis://redis:6379";
-                  # ; Remove the following line if you are unsure about your redis' security
-                  # ; to reduce impact if redis gets compromised.
-                  sessions = "true";
-                };
-
-                celery = {
-                  backend = "redis://redis:6379/1";
-                  broker = "redis://redis:6379/2";
-                };
-              };
-            };
-          in
-
-          {
-            image = cfg.pretixImage;
-            volumes = [
+        pretix = {
+          image = cfg.pretixImage;
+          volumes =
+            let
+              pretix-config = import ./pretix-cfg.nix { inherit pkgs cfg; };
+            in
+            [
               # "/path/on/host:/path/inside/container"
               "${pretix-config}:/etc/pretix/pretix.cfg"
               # "/var/lib/pretix-data/data:/data"
             ];
-            environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
-            ports = [ "12345:80" ];
-            extraOptions = [ "--network=pretix-net" ];
-          };
+          environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
+          ports = [ "12345:80" ];
+          extraOptions = [ "--network=pretix-net" ];
+        };
       };
     };
 
