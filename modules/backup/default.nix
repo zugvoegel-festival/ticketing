@@ -45,10 +45,12 @@ in
           passwordFile = config.sops.secrets.backup-passwordfile.path;
           backupPrepareCommand = '' ${pkgs.postgresql}/bin/pg_dumpall -U postgres -h postgresql > "$(date + "%Y-%m-%d").sql " '';
           backupCleanupCommand = '' rm "$(date + "%Y-%m-%d").sql " '';
-          OnCalendar = "00:05";
-          Persistent = true;
-          RandomizedDelaySec = "5h";
-
+          timerConfig =
+            {
+              OnCalendar = "00:05";
+              Persistent = true;
+              RandomizedDelaySec = "5h";
+            };
           extraBackupArgs = [
             " - -exclude-file = ${restic-ignore-file}"
             " - -one-file-system "
