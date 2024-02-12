@@ -58,11 +58,13 @@ in
 
     virtualisation.oci-containers =
       let
+          finalImageName = "manulinger/zv-ticketing";
+
         image-pretix = pkgs.dockerTools.pullImage {
+          inherit finalImageName;
           imageName = "manulinger/zv-ticketing";
           imageDigest = "sha256:3d72d3939cb144ca87a523d5f15b59112159c3d053d8605ea49681dac45822d6";
           sha256 = "112vnqvks167kmg66jmd8g7x3xlnjq729zhfdqhl301fx6dxzmya";
-          finalImageName = "manulinger/zv-ticketing";
           finalImageTag = "final";
         };
       in
@@ -126,7 +128,7 @@ in
             {
               # imageFile = self.packages."x86_64-linux".pretix-cliques; # TODO
               imageFile = image-pretix;
-              image = "pretix/standalone";
+              image = finalImageName;
               volumes = [
                 # "/path/on/host:/path/inside/container"
                 "${pretix-config}:/etc/pretix/pretix.cfg"
