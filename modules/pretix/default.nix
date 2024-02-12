@@ -16,12 +16,20 @@ in
       description = "Host serving pretix web service";
     };
 
+    pretixImage = mkOption {
+      type = types.str;
+      default = "manulinger/zv-ticketing:wussler";
+      example = "manulinger/zv-ticketing:wussler";
+      description = "Docker image with tag to deploy for pretix";
+    };
+
     instanceName = mkOption {
       type = types.str;
       default = "My Pretix Instance";
       example = "Awesome Pretix";
       description = "Name of the Pretix instance";
     };
+
     acmeMail = mkOption {
       type = types.str;
       default = null;
@@ -31,6 +39,24 @@ in
   };
 
   config = mkIf cfg.enable {
+
+    # Some helper scripts to help while debugging
+    environment.systemPackages =
+      let
+        restart-all-pretix = pkgs.writeShellScriptBin "restart-all-pretix" /* sh */
+          ''
+            sysstemctl stop docker-postgresql.service docker-pretix.service docker-redis.service
+            sysstemctl restart init-pretix-net.service
+            sysstemctl start docker-postgresql.service docker-pretix.service docker-redis.service
+          '';
+
+        nuke-docker = pkgs.writeShellScriptBin "nuke-docker" /* sh */
+          ''
+            ${pkgs.docker}/bin/docker image prune -a
+            ${pkgs.docker}/bin/docker system prune -a
+          '';
+      in
+      [ restart-all-pretix nuke-docker ];
 
     sops.secrets.pretix-envfile = { };
 
@@ -56,90 +82,40 @@ in
         '';
     };
 
-    virtualisation.oci-containers =
-      let
-        finalImageName = "manulinger/zv-ticketing";
-
-        image-pretix = pkgs.dockerTools.pullImage {
-          imageName = "manulinger/zv-ticketing";
-          imageDigest = "sha256:58ee08a87a1469d956ddc55bc8f55b1bbbcc18c2fe81142a17c6f45554cea287";
-          sha256 = "1ml5p54wqqs8ibc9xfdpbaqsjg7p6hhn81c7sdkizbriajm79aj5";
-          finalImageName = "manulinger/zv-ticketing";
-          finalImageTag = "latest";
+    virtualisation.oci-containers = {
+      backend = "docker"; # Podman is the default backend.
+      containers = {
+        redis = {
+          image = "redis:7.2.3";
+          extraOptions = [ "--network=pretix-net" ];
         };
-      in
 
-      {
-        backend = "docker"; # Podman is the default backend.
-        containers = {
-          redis = {
-            image = "redis:7.2.3";
-            extraOptions = [ "--network=pretix-net" ];
+        postgresql = {
+          image = "postgres:16.1";
+          extraOptions = [ "--network=pretix-net" ];
+          environment = {
+            POSTGRES_HOST_AUTH_METHOD = "trust";
+            POSTGRES_DB = "pretix";
           };
+        };
 
-          postgresql = {
-            image = "postgres:16.1";
-            extraOptions = [ "--network=pretix-net" ];
-            environment = {
-              POSTGRES_HOST_AUTH_METHOD = "trust";
-              POSTGRES_DB = "pretix";
-            };
-          };
-
-          pretix =
+        pretix = {
+          image = cfg.pretixImage;
+          volumes =
             let
-              pretix-config = pkgs.writeTextFile {
-                name = "pretix.cfg";
-                text = pkgs.lib.generators.toINI { } {
-                  pretix = {
-                    instance_name = "${cfg.instanceName}";
-                    url = "https://${cfg.host}";
-                    currency = "EUR";
-                    # ; DO NOT change the following value, it has to be set to the location of the
-                    # ; directory *inside* the docker container
-                    datadir = "/data";
-                    trust_x_forwarded_for = "on";
-                    trust_x_forwarded_proto = "on";
-                  };
-
-                  database = {
-                    backend = "postgresql";
-                    name = "pretix";
-                    user = "postgres";
-                    host = "postgresql";
-                  };
-
-
-                  redis = {
-                    location = "redis://redis:6379";
-                    # ; Remove the following line if you are unsure about your redis' security
-                    # ; to reduce impact if redis gets compromised.
-                    sessions = "true";
-                  };
-
-                  celery = {
-                    backend = "redis://redis:6379/1";
-                    broker = "redis://redis:6379/2";
-                  };
-                };
-              };
+              pretix-config = import ./pretix-cfg.nix { inherit pkgs cfg; };
             in
-
-            {
-              # imageFile = self.packages."x86_64-linux".pretix-cliques; # TODO
-              imageFile = image-pretix;
-              image = finalImageName;
-              volumes = [
-                # "/path/on/host:/path/inside/container"
-                "${pretix-config}:/etc/pretix/pretix.cfg"
-                # "/var/lib/pretix-data/data:/data"
-              ];
-              environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
-              ports = [ "12345:80" ];
-              extraOptions = [ "--network=pretix-net" ];
-            };
+            [
+              # "/path/on/host:/path/inside/container"
+              "${pretix-config}:/etc/pretix/pretix.cfg"
+              # "/var/lib/pretix-data/data:/data"
+            ];
+          environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
+          ports = [ "12345:80" ];
+          extraOptions = [ "--network=pretix-net" ];
         };
       };
+    };
 
     security.acme = {
       acceptTerms = true;
@@ -159,4 +135,3 @@ in
     };
   };
 }
-
