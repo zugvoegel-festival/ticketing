@@ -5,6 +5,8 @@
   ];
   zugvoegel =
     {
+      services.bank-automation.enable = true;
+
       services.pretix = {
         # Actually use our module
         enable = true;
