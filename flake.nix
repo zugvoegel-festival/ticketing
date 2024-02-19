@@ -3,6 +3,8 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
+    bank-automation.url = "github:zugvoegel-festival/pretix-bank-automation";
+
     # Partitioning
     disko.url = "github:nix-community/disko";
 
@@ -12,7 +14,7 @@
   };
 
   # Use `nix flake show` to view outputs
-  outputs = { self, nixpkgs, disko, sops-nix }: {
+  outputs = { self, nixpkgs, disko, sops-nix, bank-automation }@inputs: {
 
     # Output all modules in ./modules to flake. Modules should be in
     # individual subdirectories and contain a default.nix file
@@ -27,6 +29,7 @@
     nixosConfigurations = {
       pretix-server-01 = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
+        specialArgs = inputs;
         modules = [
           ./configuration.nix
           disko.nixosModules.disko
