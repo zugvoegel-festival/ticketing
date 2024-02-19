@@ -12,7 +12,7 @@
         host = "demo.megaclan3000.de";
 
         instanceName = "Zugvoegel Ticketshop";
-        pretixImage = "manulinger/zv-ticketing:cliques-dev";
+        pretixImage = "manulinger/zv-ticketing:pip";
         # Set the acme mail
         acmeMail = "pretix-admin@zugvoegelfestival.org";
       };
