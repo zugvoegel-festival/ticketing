@@ -17,6 +17,11 @@ in
   };
 
   config = mkIf cfg.enable {
+    networking.firewall = {
+      enable = true;
+      interfaces.eth0.allowedTCPPorts = [ cfg.port ];
+    };
+
     services.loki = {
       enable = true;
 
