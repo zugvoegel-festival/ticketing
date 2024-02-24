@@ -22,6 +22,12 @@
         enable = true;
         backupDirs = [ "/srv/pretix" ];
       };
+      services.monitoring = {
+        grafana = true;
+        prometheus = true;
+        loki = true;
+        promtail = true;
+      };
     };
 
   sops.defaultSopsFile = ./secrets/secrets.yaml;
