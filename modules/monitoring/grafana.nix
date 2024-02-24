@@ -28,16 +28,10 @@ in
 
   config = mkIf cfg.enable {
 
-    # SMTP password file
-    lollypops.secrets.files."grafana/smtp-password" = {
-      owner = "grafana";
-      path = "/var/lib/grafana/smtp-password";
-    };
-
     # Backup Graphana dir, contains stateful config
-    zugvoegelfestival.services.restic-client.backup-paths-offsite = [ "/var/lib/grafana" ];
+    zugvoegelfestival.services.backup.backupDirs = [ "/var/lib/grafana" ];
 
-    # Graphana fronend
+    # Graphana frontend
     services.grafana = {
 
       enable = true;
@@ -64,9 +58,10 @@ in
         enable = true;
         recommendedProxySettings = true;
         recommendedTlsSettings = true;
-        virtualHosts."${config.services.grafana.domain}" = {
+        virtualHosts."${cfg.domain}" = {
           enableACME = true;
           forceSSL = true;
+          locations."/".proxyWebsockets = true;
           locations."/".proxyPass = "http://127.0.0.1:${toString cfg.port}";
         };
       };
