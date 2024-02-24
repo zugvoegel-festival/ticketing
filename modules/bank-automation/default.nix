@@ -1,4 +1,4 @@
-{ lib, pkgs, config, bank-automation, ... }:
+{ lib, config, bank-automation, ... }:
 with lib;
 let cfg = config.zugvoegel.services.bank-automation;
 in
