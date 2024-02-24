@@ -11,16 +11,6 @@ in
 
     sops.secrets.bank-envfile = { };
 
-    # Run daily
-    systemd.timers."bank-automation" = {
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        Unit = "bank-automation.service";
-        OnCalendar = "daily";
-        Persistent = true;
-      };
-    };
-
     # Service for the bank-automation
     systemd.services.bank-automation = {
       description = "Start bank-automation";
