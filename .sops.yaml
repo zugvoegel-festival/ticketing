@@ -5,8 +5,8 @@ keys:
 creation_rules:
   - path_regex: secrets/[^/]+\.yaml$
     key_groups:
-    - pgp:
-      - *user_pinpox
-      age:
-      - *user_manuliner
-      - *server_pretix
+      - pgp:
+          - *user_pinpox
+        age:
+          - *user_manuliner
+          - *server_pretix
