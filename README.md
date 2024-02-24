@@ -43,5 +43,5 @@ for simplicity. Other options are using a deployment tool like
 Secrets are encrypted and managed with [sops-nix](https://github.com/Mic92/sops-nix)
 
 ```sh
-nix-shell -p sops --run "sops secrets/example.yaml"
+nix-shell -p sops --run "sops secrets/secrets.yaml"
 ```
