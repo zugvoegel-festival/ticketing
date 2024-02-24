@@ -26,10 +26,10 @@ in
       description = "Start bank-automation";
       after = [ "network.target" ];
 
-      environmentFile = config.sops.secrets.bank-envfile.path;
 
       serviceConfig = {
         Type = "oneshot";
+        EnvironmentFile = config.sops.secrets.bank-envfile.path;
         PermissionsStartOnly = true;
         LimitNPROC = 512;
         LimitNOFILE = 1048576;
