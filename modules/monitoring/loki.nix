@@ -17,26 +17,13 @@ in
   };
 
   config = mkIf cfg.enable {
-
-    networking.firewall = {
-      enable = true;
-      interfaces.wg0.allowedTCPPorts = [ cfg.port ];
-    };
-
     services.loki = {
       enable = true;
+
       configuration = {
         auth_enabled = false;
 
         server = { http_listen_port = cfg.port; };
-        positions = {
-          filename = "/tmp/positions.yml";
-        };
-        clients = [
-          {
-            url = "http://127.0.0.1:${toString cfg.port}/loki/api/v1/push";
-          }
-        ];
 
         ingester = {
           lifecycler = {
