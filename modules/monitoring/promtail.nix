@@ -2,7 +2,6 @@
 with lib;
 let
   cfg = config.zugvoegelfestival.services.monitoring.promtail;
-  port-loki = 3100;
 in
 {
 
@@ -23,7 +22,7 @@ in
         positions = { filename = "/tmp/positions.yml"; };
 
         clients = [{
-          url = "http://localhost:${toString config.zugvoegelfestival.services.monittoring.loki.port}/loki/api/v1/push";
+          url = "http://localhost:${toString config.zugvoegelfestival.services.monitoring.loki.port}/loki/api/v1/push";
         }];
 
         scrape_configs = [{
@@ -36,7 +35,6 @@ in
             };
           };
           relabel_configs = [{
-
             source_labels = [ "__journal__systemd_unit" ];
             target_label = "unit";
           }];
