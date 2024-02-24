@@ -1,6 +1,6 @@
 { modulesPath, ... }:
 let
-  primaryDisk = "/dev/sda";
+  primaryDisk = "/dev/vda";
 in
 {
 
@@ -8,41 +8,38 @@ in
     (modulesPath + "/profiles/qemu-guest.nix")
   ];
 
-  disko.devices.disk.main = {
-    type = "disk";
-    device = primaryDisk;
-    content = {
-      type = "table";
-      format = "gpt";
-      partitions = [
-        {
-          name = "boot";
-          start = "0";
-          end = "1M";
-          flags = [ "bios_grub" ];
-        }
-        {
-          name = "ESP";
-          start = "1M";
-          end = "512M";
-          bootable = true;
-          content = {
-            type = "filesystem";
-            format = "vfat";
-            mountpoint = "/boot";
+  disko.devices = {
+    disk = {
+      main = {
+        type = "disk";
+        device = primaryDisk;
+        content = {
+          type = "gpt";
+          partitions = {
+            boot = {
+              size = "1M";
+              type = "EF02";
+            };
+            ESP = {
+              size = "512M";
+              type = "EF00";
+              content = {
+                type = "filesystem";
+                format = "vfat";
+                mountpoint = "/boot";
+              };
+            };
+            root = {
+              size = "100%";
+              content = {
+                type = "filesystem";
+                format = "ext4";
+                mountpoint = "/";
+              };
+            };
           };
-        }
-        {
-          name = "nixos";
-          start = "512M";
-          end = "100%";
-          content = {
-            type = "filesystem";
-            format = "ext4";
-            mountpoint = "/";
-          };
-        }
-      ];
+        };
+      };
     };
   };
 

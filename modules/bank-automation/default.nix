@@ -1,4 +1,4 @@
-{ lib, pkgs, config, bank-automation, ... }:
+{ lib, config, bank-automation, ... }:
 with lib;
 let cfg = config.zugvoegel.services.bank-automation;
 in
@@ -10,16 +10,6 @@ in
   config = mkIf cfg.enable {
 
     sops.secrets.bank-envfile = { };
-
-    # Run daily
-    systemd.timers."bank-automation" = {
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        Unit = "bank-automation.service";
-        OnCalendar = "daily";
-        Persistent = true;
-      };
-    };
 
     # Service for the bank-automation
     systemd.services.bank-automation = {
@@ -37,7 +27,7 @@ in
         AmbientCapabilities = "cap_net_bind_service";
         NoNewPrivileges = true;
         DynamicUser = true;
-        ExecStart = "${bank-automation.defaultPackage.x86_64-linux}/bin/bank-automation";
+        ExecStart = "${bank-automation.defaultPackage.x86_64-linux}/bin/pretix-bank-automation";
         Restart = "on-failure";
         RestartSec = "5s";
       };
