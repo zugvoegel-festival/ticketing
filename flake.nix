@@ -24,8 +24,8 @@
         value = import (./modules + "/${x}");
       })
       (builtins.attrNames (builtins.readDir ./modules)));
-
     # Define system configurations
+
     nixosConfigurations = {
       pretix-server-01 = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
