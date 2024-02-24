@@ -13,9 +13,9 @@ Setup public-key based authentication on the server and run nixos-anywhere for
 intial deployment. The public key will persist after infection.
 
 ```
-ssh-copy-id -o PubkeyAuthentication=no -o PreferredAuthentications=password  root@92.60.37.228
-ssh root@92.60.37.228
-nix run github:numtide/nixos-anywhere -- --flake .\#pretix-server-01 root@92.60.37.228
+ssh-copy-id -o PubkeyAuthentication=no -o PreferredAuthentications=password  root@185.232.69.172
+ssh root@185.232.69.172
+nix run github:numtide/nixos-anywhere -- --flake .\#pretix-server-01 root@185.232.69.172
 ```
 
 ### Further deployments (Server is NixOS)
@@ -28,7 +28,7 @@ generated as the DNS challenge will fail.
 Further deployments can be done with:
 
 ```sh
-nixos-rebuild switch --flake '.#pretix-server-01' --target-host root@92.60.37.228 
+nixos-rebuild switch --flake '.#pretix-server-01' --target-host root@185.232.69.172  --build-host root@185.232.69.172 
 ```
 
 Note: Other deployment methods are possible and might be more suitable for
