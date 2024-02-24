@@ -27,7 +27,7 @@ in
         AmbientCapabilities = "cap_net_bind_service";
         NoNewPrivileges = true;
         DynamicUser = true;
-        ExecStart = "${bank-automation.defaultPackage.x86_64-linux}/bin/bank-automation";
+        ExecStart = "${bank-automation.defaultPackage.x86_64-linux}/bin/pretix-bank-automation";
         Restart = "on-failure";
         RestartSec = "5s";
       };
