@@ -16,6 +16,15 @@ in
       description = "Start bank-automation";
       after = [ "network.target" ];
 
+      # Run daily
+      systemd.timers."pretix-bank-automation" = {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          Unit = "pretix-bank-automation.service";
+          OnCalendar = "00:05";
+          Persistent = true;
+        };
+      };
 
       serviceConfig = {
         Type = "oneshot";
