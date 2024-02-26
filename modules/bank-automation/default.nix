@@ -10,13 +10,22 @@ in
   config = mkIf cfg.enable {
 
     sops.secrets.bank-envfile = { };
+    # Run daily
+      systemd.timers."bank-automation" = {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          Unit = "bank-automation.service";
+          OnCalendar = "00:05";
+          Persistent = true;
+        };
+      };
 
     # Service for the bank-automation
     systemd.services.bank-automation = {
       description = "Start bank-automation";
       after = [ "network.target" ];
 
-
+  
       serviceConfig = {
         Type = "oneshot";
         EnvironmentFile = config.sops.secrets.bank-envfile.path;
