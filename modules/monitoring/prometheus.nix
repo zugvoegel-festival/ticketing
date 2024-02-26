@@ -1,4 +1,4 @@
-{ lib, pkgs, config, flake-self, ... }:
+{ lib, config, ... }:
 with lib;
 let cfg = config.zugvoegelfestival.services.monitoring.prometheus;
 in
