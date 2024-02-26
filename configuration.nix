@@ -11,12 +11,12 @@
         # Actually use our module
         enable = true;
         # Set the host
-        host = "tickets.loco.vision";
+        host = "tickets.zugvoegelfestival.org";
 
         instanceName = "Zugvoegel Ticketshop";
         pretixImage = "manulinger/zv-ticketing:pip";
         # Set the acme mail
-        acmeMail = "pretix-admin@zugvoegelfestival.org";
+        acmeMail = "webmaster@zugvoegelfestival.org";
       };
       services.backup = {
         enable = true;
