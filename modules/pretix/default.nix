@@ -86,11 +86,13 @@ in
       backend = "docker"; # Podman is the default backend.
       containers = {
         redis = {
+          #  hostname = "pretix-redis";
           image = "redis:7.2.3";
           extraOptions = [ "--network=pretix-net" ];
         };
 
         postgresql = {
+          #  hostname = "pretix-postgres";
           image = "postgres:16.1";
           extraOptions = [ "--network=pretix-net" ];
           environment = {
@@ -101,6 +103,7 @@ in
 
         pretix = {
           image = cfg.pretixImage;
+          # hostname = "pretix-app";
           volumes =
             let
               pretix-config = import ./pretix-cfg.nix { inherit pkgs cfg; };
@@ -108,7 +111,7 @@ in
             [
               # "/path/on/host:/path/inside/container"
               "${pretix-config}:/etc/pretix/pretix.cfg"
-              # "/var/lib/pretix-data/data:/data"
+              "/var/lib/pretix-data/data:/data"
             ];
           environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
           ports = [ "12345:80" ];
