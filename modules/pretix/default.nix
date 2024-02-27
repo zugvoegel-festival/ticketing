@@ -18,8 +18,8 @@ in
 
     pretixImage = mkOption {
       type = types.str;
-      default = "manulinger/zv-ticketing:wussler";
-      example = "manulinger/zv-ticketing:wussler";
+      default = "manulinger/zv-ticketing:pip";
+      example = "manulinger/zv-ticketing:pip";
       description = "Docker image with tag to deploy for pretix";
     };
 
@@ -59,7 +59,7 @@ in
       [ restart-all-pretix nuke-docker ];
 
     sops.secrets.pretix-envfile = { };
-
+ 
     systemd.services.init-pretix-net = {
       description = "Create the network bridge pretix-net";
       after = [ "network.target" ];
@@ -86,24 +86,22 @@ in
       backend = "docker"; # Podman is the default backend.
       containers = {
         redis = {
-          #  hostname = "pretix-redis";
           image = "redis:7.2.3";
           extraOptions = [ "--network=pretix-net" ];
         };
 
         postgresql = {
-          #  hostname = "pretix-postgres";
           image = "postgres:16.1";
           extraOptions = [ "--network=pretix-net" ];
           environment = {
             POSTGRES_HOST_AUTH_METHOD = "trust";
             POSTGRES_DB = "pretix";
           };
+          volumes= ["/var/lib/pretix-postgresql/data:/var/lib/postgresql/data"];
         };
 
         pretix = {
           image = cfg.pretixImage;
-          # hostname = "pretix-app";
           volumes =
             let
               pretix-config = import ./pretix-cfg.nix { inherit pkgs cfg; };
@@ -111,7 +109,7 @@ in
             [
               # "/path/on/host:/path/inside/container"
               "${pretix-config}:/etc/pretix/pretix.cfg"
-              "/var/lib/pretix-data/data:/data"
+              #"/var/lib/pretix-datas/data:/data"
             ];
           environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
           ports = [ "12345:80" ];

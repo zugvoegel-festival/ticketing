@@ -20,7 +20,7 @@
       };
       services.backup = {
         enable = true;
-        backupDirs = [ "/var/lib/pretix-data/data" "/var/lib/pretix-data/dumps" ];
+        backupDirs = [ "/var/lib/pretix-postgresql/dumps/" ];
       };
     };
 
