@@ -6,9 +6,16 @@ in
   options.zugvoegel.services.backup = {
     enable = mkEnableOption "restic backups";
 
+    postgresDumpPath = mkOption {
+      type = types.str;
+      default = "/var/lib/pretix-postgresql/dumps";
+      example = "/var/lib/backups";
+      description = "Path to use to dump sql for backups";
+    };
+
     backupDirs = mkOption {
       type = types.listOf types.str;
-      default = [ ];
+      default = [ config.zugvoegel.services.backup.postgresDumpPath ];
       example = [ "/home/zugvoegel/Notes" ];
       description = "Paths to backup to offsite storage";
     };
@@ -23,9 +30,14 @@ in
 
   config = mkIf cfg.enable {
 
+    environment.systemPackages = with pkgs; [ restic ];
+
     sops.secrets.backup-envfile = { };
     sops.secrets.backup-passwordfile = { };
-    systemd.tmpfiles.rules = [ "d /var/lib/pretix-postgresql/dumps/" ];
+
+    systemd.tmpfiles.rules = [ "d ${cfg.postgresDumpPath}" ];
+    # systemd.services.restic-backups-zv-data.serviceConfig.ReadWritePaths
+
     services.restic.backups =
       let
         # host = config.networking.hostName;
@@ -36,13 +48,17 @@ in
         };
       in
       {
-        s3-offsite = {
+        zv-data = {
           paths = cfg.backupDirs;
-          repository = "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp ";
+          repository = "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp";
           environmentFile = config.sops.secrets.backup-envfile.path;
           passwordFile = config.sops.secrets.backup-passwordfile.path;
-          backupPrepareCommand = '' ${pkgs.docker}/bin/docker exec postgresql pg_dumpall -U postgres -h postgresql > /var/lib/pretix-postgresql/dumps/dump_"$(date +"%Y-%m-%d").sql" '';
-          backupCleanupCommand = '' rm "/var/lib/pretix-postgresql/dumps/dump_$(date +"%Y-%m-%d").sql" '';
+          backupPrepareCommand = ''
+            ${pkgs.docker}/bin/docker exec postgresql pg_dumpall -U postgres -h postgresql > ${cfg.postgresDumpPath}/dump_"$(date +"%Y-%m-%d").sql"
+          '';
+          backupCleanupCommand = ''
+            rm "${cfg.postgresDumpPath}/dump_$(date +"%Y-%m-%d").sql"
+          '';
           timerConfig =
             {
               OnCalendar = "00:05";
@@ -50,17 +66,11 @@ in
               RandomizedDelaySec = "5h";
             };
           extraBackupArgs = [
-            "--exclude-file = ${restic-ignore-file}"
+            "--exclude-file=${restic-ignore-file}"
             "--one-file-system"
-            # "--dry-run"
             "-vv"
           ];
         };
       };
   };
 }
-
-
-
-
-
