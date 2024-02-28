@@ -38,11 +38,11 @@ in
       {
         s3-offsite = {
           paths = cfg.backupDirs;
-          repository = " s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp ";
+          repository = "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp ";
           environmentFile = config.sops.secrets.backup-envfile.path;
           passwordFile = config.sops.secrets.backup-passwordfile.path;
-          backupPrepareCommand = '' docker exec postgresql pg_dumpall -U postgres -h postgresql > /var/lib/pretix-postgresql/dumps/dump_"$(date +"%Y-%m-%d").sql" '';
-          backupCleanupCommand = '' rm "dump_$(date +"%Y-%m-%d").sql " '';
+          backupPrepareCommand = '' ${pkgs.docker}/bin/docker exec postgresql pg_dumpall -U postgres -h postgresql > /var/lib/pretix-postgresql/dumps/dump_"$(date +"%Y-%m-%d").sql" '';
+          backupCleanupCommand = '' rm "/var/lib/pretix-postgresql/dumps/dump_$(date +"%Y-%m-%d").sql" '';
           timerConfig =
             {
               OnCalendar = "00:05";
@@ -50,13 +50,12 @@ in
               RandomizedDelaySec = "5h";
             };
           extraBackupArgs = [
-            " - -exclude-file = ${restic-ignore-file}"
-            " - -one-file-system "
-            # " - -dry-run "
-            " - vv "
+            "--exclude-file = ${restic-ignore-file}"
+            "--one-file-system"
+            # "--dry-run"
+            "-vv"
           ];
         };
-
       };
   };
 }
