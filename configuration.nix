@@ -23,10 +23,11 @@
         backupDirs = [ "/srv/pretix" ];
       };
       services.monitoring = {
-        grafana = true;
-        prometheus = true;
-        loki = true;
-        promtail = true;
+        grafana = false;
+        prometheus = false;
+        loki = false;
+        promtail = false;
+        prometheus_exporters = true;
       };
     };
 

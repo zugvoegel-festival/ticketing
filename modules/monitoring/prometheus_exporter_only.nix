@@ -6,7 +6,7 @@ in
 
   options.zugvoegelfestival.services.monitoring.prometheus_exporters = {
     enable = mkEnableOption "prometheus node exporter";
-    
+
     port-exporter = mkOption {
       type = types.Integer;
       default = 3000;
@@ -15,7 +15,7 @@ in
     };
     config = mkIf cfg.enable {
 
-      services.prometheus = {
+      services.prometheus_exporters = {
         exporters = {
           node = {
             enable = cfg.enable;
@@ -34,17 +34,17 @@ in
         ];
       };
 
-        # nginx reverse proxy
-    services.nginx = {
-      enable = true;
-      recommendedProxySettings = true;
-      recommendedTlsSettings = true;
-      virtualHosts."${cfg.host}" = {
-        enableACME = true;
-        forceSSL = true;
-        locations."/exporter".proxyPass = "http://127.0.0.1:${toString cfg.port-exporter}";
+      # nginx reverse proxy
+      services.nginx = {
+        enable = true;
+        recommendedProxySettings = true;
+        recommendedTlsSettings = true;
+        virtualHosts."${cfg.host}" = {
+          enableACME = true;
+          forceSSL = true;
+          locations."/exporter".proxyPass = "http://127.0.0.1:${toString cfg.port-exporter}";
+        };
       };
-    };
     };
   };
 }

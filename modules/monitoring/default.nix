@@ -1,4 +1,4 @@
-{  ... }:
+{ ... }:
 
 {
   imports = [
@@ -6,5 +6,6 @@
     ./loki.nix
     ./prometheus.nix
     ./promtail.nix
+    ./prometheus_exporter_only.nix
   ];
 }
