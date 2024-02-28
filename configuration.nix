@@ -27,7 +27,7 @@
   sops.defaultSopsFile = ./secrets/secrets.yaml;
 
   # "Install" git
-  environment.systemPackages = [ pkgs.git ];
+  environment.systemPackages = [ pkgs.git pkgs.docker ];
 
   # Time zone and internationalisation
   time.timeZone = "Europe/Berlin";
