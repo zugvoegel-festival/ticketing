@@ -36,7 +36,6 @@ in
     sops.secrets.backup-passwordfile = { };
 
     systemd.tmpfiles.rules = [ "d ${cfg.postgresDumpPath}" ];
-    # systemd.services.restic-backups-zv-data.serviceConfig.ReadWritePaths
 
     services.restic.backups =
       let
@@ -54,7 +53,7 @@ in
           environmentFile = config.sops.secrets.backup-envfile.path;
           passwordFile = config.sops.secrets.backup-passwordfile.path;
           backupPrepareCommand = ''
-            ${pkgs.docker}/bin/docker exec postgresql pg_dumpall -U postgres -h postgresql > ${cfg.postgresDumpPath}/dump_"$(date +"%Y-%m-%d").sql"
+            ${config.virtualisation.docker.package}/bin/docker exec postgresql pg_dumpall -U postgres -h postgresql > ${cfg.postgresDumpPath}/dump_"$(date +"%Y-%m-%d").sql"
           '';
           backupCleanupCommand = ''
             rm "${cfg.postgresDumpPath}/dump_$(date +"%Y-%m-%d").sql"
