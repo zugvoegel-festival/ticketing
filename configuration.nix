@@ -11,16 +11,18 @@
         # Actually use our module
         enable = true;
         # Set the host
-        host = "tickets.loco.vision";
+        host = "tickets.zugvoegelfestival.org";
 
         instanceName = "Zugvoegel Ticketshop";
-        pretixImage = "manulinger/zv-ticketing:pip";
+        pretixImage = "manulinger/zv-ticketing:pretix-custom-cliques";
         # Set the acme mail
-        acmeMail = "pretix-admin@zugvoegelfestival.org";
+        acmeMail = "webmaster@zugvoegelfestival.org";
+        pretixDataPath = "/var/lib/pretix-data/data";
       };
       services.backup = {
         enable = true;
-        backupDirs = [ "/srv/pretix" ];
+        postgresDumpPath = "/var/lib/pretix-postgresql/dumps";
+        backupDirs = [ "/var/lib/pretix-data/data" "/var/lib/pretix-postgresql/dumps" ]; # didn't know how to ref pretixDataPath
       };
       services.monitoring = {
         grafana = false;
