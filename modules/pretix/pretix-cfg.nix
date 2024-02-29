@@ -13,6 +13,11 @@ pkgs.writeTextFile {
       trust_x_forwarded_proto = "on";
     };
 
+    metrics = {
+      enabled = true;
+      user = "${cfg.metrics-user}";
+      passphrase = "${cfg.metrics-password}"; # TODO @pablo how to add secrets from sops here?
+    };
     database = {
       backend = "postgresql";
       name = "pretix";

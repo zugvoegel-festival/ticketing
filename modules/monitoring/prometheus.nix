@@ -1,49 +1,55 @@
 { lib, config, ... }:
 with lib;
-let cfg = config.zugvoegelfestival.services.monitoring.prometheus;
+let cfg = config.zugvoegel.services.monitoring.prometheus;
 in
 {
 
-  options.zugvoegelfestival.services.monitoring.prometheus = {
-    enable = mkEnableOption "prometheus";
-    port = mkOption {
-      type = types.Integer;
-      default = 9001;
-      example = 9001;
-      description = "Port for prometheus";
-    };
+  options.zugvoegel.services.monitoring.prometheus = {
+    enable = mkEnableOption "prometheus node exporter";
+
     port-exporter = mkOption {
-      type = types.Integer;
-      default = 3000;
+      type = types.int;
+      default = 9100;
       example = 3000;
       description = "Port for prometheus exporter";
     };
-    config = mkIf cfg.enable {
+    host = mkOption {
+      type = types.str;
+      default = null;
+      example = "demo.megaclan3000.de";
+      description = "Host serving pretix web service";
+    };
+  };
+  config = mkIf cfg.enable {
 
-      services.prometheus = {
-        enable = true;
-        port = cfg.port;
-        # Disable config checks. They will fail because they run sandboxed and
-        # can't access external files, e.g. the secrets stored in /run/keys
-        # https://github.com/NixOS/nixpkgs/blob/d89d7af1ba23bd8a5341d00bdd862e8e9a808f56/nixos/modules/services/monitoring/prometheus/default.nix#L1732-L1738
-        checkConfig = false;
-
-        exporters = {
-          node = {
-            enable = true;
-            enabledCollectors = [ "systemd" ];
-            port = cfg.port-exporter;
-          };
+    services.prometheus = {
+      exporters = {
+        node = {
+          enable = true;
+          enabledCollectors = [ "systemd" ];
+          port = cfg.port-exporter;
         };
+      };
 
-        scrapeConfigs = [
-          {
-            job_name = "PrometheusExporter";
-            static_configs = [{
-              targets = [ "127.0.0.1:${toString cfg.port-exporter}" ];
-            }];
-          }
-        ];
+      scrapeConfigs = [
+        {
+          job_name = "PrometheusExporter";
+          static_configs = [{
+            targets = [ "127.0.0.1:${toString cfg.port-exporter}" ];
+          }];
+        }
+      ];
+    };
+
+    # nginx reverse proxy
+    services.nginx = {
+      enable = true;
+      recommendedProxySettings = true;
+      recommendedTlsSettings = true;
+      virtualHosts."${cfg.host}" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/".proxyPass = "http://127.0.0.1:${toString cfg.port-exporter}";
       };
     };
   };
