@@ -26,7 +26,15 @@ in
       example = [ "/home/zugvoegel/cache" ];
       description = "Paths to exclude from backup";
     };
+
+    s3Repository = mkOption {
+      type = types.listOf types.str;
+      default = [ "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp" ];
+      example = [ "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp" ];
+      description = "s3 repository";
+    };
   };
+
 
   config = mkIf cfg.enable {
 
@@ -35,7 +43,10 @@ in
     sops.secrets.backup-envfile = { };
     sops.secrets.backup-passwordfile = { };
 
-    systemd.tmpfiles.rules = [ "d ${cfg.postgresDumpPath}" ];
+    systemd.services.restic-backups-zv-data.preStart =
+      ''
+        mkdir -p "${cfg.postgresDumpPath}"
+      '';
 
     services.restic.backups =
       let

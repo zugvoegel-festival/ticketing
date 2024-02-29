@@ -14,12 +14,15 @@
         host = "tickets.zugvoegelfestival.org";
 
         instanceName = "Zugvoegel Ticketshop";
-        pretixImage = "manulinger/zv-ticketing:pip";
+        pretixImage = "manulinger/zv-ticketing:pretix-custom-cliques";
         # Set the acme mail
         acmeMail = "webmaster@zugvoegelfestival.org";
+        pretixDataPath = "/var/lib/pretix-data/data";
       };
       services.backup = {
         enable = true;
+        postgresDumpPath = "/var/lib/pretix-postgresql/dumps";
+        backupDirs = [ "/var/lib/pretix-data/data" "/var/lib/pretix-postgresql/dumps" ]; # didn't know how to ref pretixDataPath
       };
     };
 

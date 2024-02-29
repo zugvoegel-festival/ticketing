@@ -18,8 +18,8 @@ in
 
     pretixImage = mkOption {
       type = types.str;
-      default = "manulinger/zv-ticketing:pip";
-      example = "manulinger/zv-ticketing:pip";
+      default = "manulinger/zv-ticketing:pretix-cliques";
+      example = "manulinger/zv-ticketing:pretix-cliques";
       description = "Docker image with tag to deploy for pretix";
     };
 
@@ -36,6 +36,13 @@ in
       example = "admin@pretix.eu";
       description = "Email for SSL Certificate Renewal";
     };
+    pretixDataPath = mkOption {
+      type = types.str;
+      default = "/var/lib/pretix-data/data";
+      example = "/var/lib/path-to-pretix-data";
+      description = "Path to use for persisten pretix data";
+    };
+
   };
 
   config = mkIf cfg.enable {
@@ -47,6 +54,7 @@ in
           ''
             systemctl stop docker-postgresql.service docker-pretix.service docker-redis.service
             systemctl restart init-pretix-net.service
+            systemctl restart init-pretix-data.service
             systemctl start docker-postgresql.service docker-pretix.service docker-redis.service
           '';
 
@@ -58,8 +66,9 @@ in
       in
       [ restart-all-pretix nuke-docker ];
 
+
     sops.secrets.pretix-envfile = { };
- 
+
     systemd.services.init-pretix-net = {
       description = "Create the network bridge pretix-net";
       after = [ "network.target" ];
@@ -82,6 +91,11 @@ in
         '';
     };
 
+    systemd.services.docker-pretix.preStart =
+      ''
+        mkdir -p ${cfg.pretixDataPath} && chown -R 15371:15371 ${cfg.pretixDataPath}
+      '';
+
     virtualisation.oci-containers = {
       backend = "docker"; # Podman is the default backend.
       containers = {
@@ -97,7 +111,7 @@ in
             POSTGRES_HOST_AUTH_METHOD = "trust";
             POSTGRES_DB = "pretix";
           };
-          volumes= ["/var/lib/pretix-postgresql/data:/var/lib/postgresql/data"];
+          volumes = [ "/var/lib/pretix-postgresql/data:/var/lib/postgresql/data" ];
         };
 
         pretix = {
@@ -107,9 +121,8 @@ in
               pretix-config = import ./pretix-cfg.nix { inherit pkgs cfg; };
             in
             [
-              # "/path/on/host:/path/inside/container"
               "${pretix-config}:/etc/pretix/pretix.cfg"
-              #"/var/lib/pretix-datas/data:/data"
+              "${cfg.pretixDataPath}:/data"
             ];
           environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
           ports = [ "12345:80" ];
