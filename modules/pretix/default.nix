@@ -29,6 +29,18 @@ in
       example = "Awesome Pretix";
       description = "Name of the Pretix instance";
     };
+    metrics-user = mkOption {
+      type = types.str;
+      default = "user";
+      example = "user";
+      description = "user for auth for metrics page";
+    };
+    metrics-password = mkOption {
+      type = types.str;
+      default = "password";
+      example = "supersecretpassword";
+      description = "password for auth for metrics page";
+    };
 
     acmeMail = mkOption {
       type = types.str;
@@ -68,6 +80,12 @@ in
 
 
     sops.secrets.pretix-envfile = { };
+    #    sops.secrets.metrics-user = { };
+    #    sops.secrets.metrics-password = { };
+
+
+    # cfg.metrics-user = config.sops.secrets.metrics-user;
+    # cfg.metrics-password = config.sops.secrets.metrics-password;
 
     systemd.services.init-pretix-net = {
       description = "Create the network bridge pretix-net";
@@ -95,6 +113,8 @@ in
       ''
         mkdir -p ${cfg.pretixDataPath} && chown -R 15371:15371 ${cfg.pretixDataPath}
       '';
+
+
 
     virtualisation.oci-containers = {
       backend = "docker"; # Podman is the default backend.

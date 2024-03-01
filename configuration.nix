@@ -18,11 +18,18 @@
         # Set the acme mail
         acmeMail = "webmaster@zugvoegelfestival.org";
         pretixDataPath = "/var/lib/pretix-data/data";
+
       };
       services.backup = {
         enable = true;
         postgresDumpPath = "/var/lib/pretix-postgresql/dumps";
         backupDirs = [ "/var/lib/pretix-data/data" "/var/lib/pretix-postgresql/dumps" ]; # didn't know how to ref pretixDataPath
+      };
+      services.monitoring = {
+        prometheus = {
+          enable = true;
+          host = "status.loco.vision";
+        };
       };
     };
 
