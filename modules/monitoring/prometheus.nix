@@ -40,6 +40,7 @@ in
         }
       ];
     };
+    sops.secrets.metrics-basicAuth = { };
 
     # nginx reverse proxy
     services.nginx = {
@@ -47,6 +48,7 @@ in
       recommendedProxySettings = true;
       recommendedTlsSettings = true;
       virtualHosts."${cfg.host}" = {
+        # basicAuthFile = config.sops.secrets.metrics-basicAuth;
         enableACME = true;
         forceSSL = true;
         locations."/".proxyPass = "http://127.0.0.1:${toString cfg.port-exporter}";
