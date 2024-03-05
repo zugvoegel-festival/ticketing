@@ -34,7 +34,7 @@ in
 
   config = mkIf cfg.enable {
 
-    # sops.secrets.schwarm-api-envfile = { };
+    sops.secrets.schwarm-api-envfile = { };
 
     systemd.services.init-schwarm-net = {
       description = "Create the network bridge schwarm-net";
@@ -66,8 +66,7 @@ in
     virtualisation.oci-containers = {
       backend = "docker"; # Podman is the default backend.
       containers = {
-        sql = {
-          container-name = "schwarmplaner-db";
+        schwarmplaner-db = {
           image = "mysql";
           ports = [ "3306:3306" ];
           volumes = [
@@ -77,28 +76,28 @@ in
           environment = {
             MYSQL_DATABASE = "schwarm";
             MYSQL_ROOT_PASSWORD = "schwarmPassword";
-            TZ = Europe/Berlin;
+            TZ = "Europe/Berlin";
           };
           extraOptions = [ "--network=schwarm-net" ];
         };
-        api = {
-          container-name = "schwarmplaner-api";
+        schwarmplaner-api = {
+
           image = cfg.api-image;
-          depends_on = [ "mysql" ];
+          dependsOn = [ "schwarmplaner-db" ];
           ports = [ "3000:3000" ];
           environmentFiles = [
-            #config.sops.secrets.schwarm-api-envfile.path
+            config.sops.secrets.schwarm-api-envfile.path
           ];
           extraOptions = [ "--network=schwarm-net" ];
         };
 
-        frontend = {
-          container-name = "schwarmplaner-frontend";
+        schwarmplaner-frontend = {
+
           image = cfg.frontend-image;
           ports = [ "8080:8080" ];
-          depends_on = [ "api" ];
+          dependsOn = [ "schwarmplaner-api" ];
           environment = {
-            VUE_APP_API_URL = http://localhost/api;
+            VUE_APP_API_URL = "http://localhost/api";
           };
           extraOptions = [ "--network=schwarm-net" ];
         };
@@ -118,7 +117,7 @@ in
       virtualHosts."${cfg.host}" = {
         enableACME = true;
         forceSSL = true;
-        locations."/".proxyPass = "http://127.0.0.1:8080";
+        locations."/".proxyPass = "http://localhost:8080";
       };
     };
   };
