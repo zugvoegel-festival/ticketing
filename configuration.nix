@@ -19,8 +19,8 @@
         enable = true;
 
         host = "schwarm.loco.vision";
-        frontend-image = "manulinger/zv-ticketing:schwarmplaner-frontend";
-        api-image = "manulinger/zv-ticketing:schwarmplaner-api";
+        frontend-image = "manulinger/zv-schwarmplaner:frontend";
+        api-image = "manulinger/zv-schwarmplaner:api";
         acmeMail = "webmaster@zugvoegelfestival.org";
       };
       services.backup = {

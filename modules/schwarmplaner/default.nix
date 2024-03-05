@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, ... }:
 with lib;
 let
   cfg = config.zugvoegel.services.schwarmplaner;
@@ -94,10 +94,10 @@ in
         schwarmplaner-frontend = {
 
           image = cfg.frontend-image;
-          ports = [ "8080:8080" ];
+          ports = [ "8080:80" ];
           dependsOn = [ "schwarmplaner-api" ];
           environment = {
-            VUE_APP_API_URL = "http://localhost/api";
+            VUE_APP_API_URL = "http://localhost:3000/api";
           };
           extraOptions = [ "--network=schwarm-net" ];
         };
