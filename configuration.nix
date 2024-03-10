@@ -18,9 +18,11 @@
       services.schwarmplaner = {
         enable = true;
 
-        host = "schwarm.loco.vision";
+        host = "schwarmplaner.zugvoegelfestival.org";
+        apiHost = "api.zugvoegelfestival.org";
         frontend-image = "manulinger/zv-schwarmplaner:frontend";
         api-image = "manulinger/zv-schwarmplaner:api";
+        nginx-image = "manulinger/zv-schwarmplaner:nginx";
         acmeMail = "webmaster@zugvoegelfestival.org";
       };
       services.backup = {
