@@ -12,6 +12,12 @@ in
       example = "demo.megaclan3000.de";
       description = "Host serving service";
     };
+    apiHost = mkOption {
+      type = types.str;
+      default = null;
+      example = "api.megaclan3000.de";
+      description = "Host api serving service";
+    };
     frontend-image = mkOption {
       type = types.str;
       default = null;
@@ -19,6 +25,12 @@ in
       description = "Docker image with tag";
     };
     api-image = mkOption {
+      type = types.str;
+      default = null;
+      example = "dockeruser/repository-name:tag";
+      description = "Docker image with tag";
+    };
+    nginx-image = mkOption {
       type = types.str;
       default = null;
       example = "dockeruser/repository-name:tag";
@@ -58,14 +70,20 @@ in
         '';
     };
 
-    # systemd.services.docker-pretix.preStart =
-    #   ''
-    #     mkdir -p ${cfg.pretixDataPath} && chown -R 15371:15371 ${cfg.pretixDataPath}
-    #   '';
+    #  systemd.services.docker-schwarmplaner-db.preStart =
+    #    ''
+    #      kdir -p /var/lib/schwarmplaner/mysql/ && chown -R 15371:15371 /var/lib/schwarmplaner/mysql/ && mkdir -p /var/lib/schwarmplaner/mysql/data && chown -R 15371:15371 /var/lib/schwarmplaner/mysql/data
+    #    '';
 
     virtualisation.oci-containers = {
       backend = "docker"; # Podman is the default backend.
       containers = {
+        schwarmplaner-nginx = {
+          image = cfg.nginx-image;
+          dependsOn = [ "schwarmplaner-frontend" "schwarmplaner-api" "schwarmplaner-db" ];
+          ports = [ "90:80" ];
+          extraOptions = [ "--network=schwarm-net" ];
+        };
         schwarmplaner-db = {
           image = "mysql";
           ports = [ "3306:3306" ];
@@ -80,8 +98,8 @@ in
           };
           extraOptions = [ "--network=schwarm-net" ];
         };
-        schwarmplaner-api = {
 
+        schwarmplaner-api = {
           image = cfg.api-image;
           dependsOn = [ "schwarmplaner-db" ];
           ports = [ "3000:3000" ];
@@ -92,13 +110,9 @@ in
         };
 
         schwarmplaner-frontend = {
-
           image = cfg.frontend-image;
-          ports = [ "8080:80" ];
+          ports = [ "8000:8000" ];
           dependsOn = [ "schwarmplaner-api" ];
-          environment = {
-            VUE_APP_API_URL = "http://localhost:3000/api";
-          };
           extraOptions = [ "--network=schwarm-net" ];
         };
       };
@@ -117,8 +131,10 @@ in
       virtualHosts."${cfg.host}" = {
         enableACME = true;
         forceSSL = true;
-        locations."/".proxyPass = "http://localhost:8080";
+        locations."/".proxyPass = "http://localhost:90";
+
       };
+
     };
   };
 }
