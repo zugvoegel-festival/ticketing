@@ -47,6 +47,7 @@ in
   config = mkIf cfg.enable {
 
     sops.secrets.schwarm-api-envfile = { };
+    sops.secrets.schwarm-db-envfile = { };
 
     systemd.services.init-schwarm-net = {
       description = "Create the network bridge schwarm-net";
@@ -91,11 +92,9 @@ in
             "/var/lib/schwarmplaner/mysql/conf.d:/etc/mysql/conf.d"
             "/var/lib/schwarmplaner/mysql/data:/var/lib/mysql"
           ];
-          environment = {
-            MYSQL_DATABASE = "schwarm";
-            MYSQL_ROOT_PASSWORD = "schwarmPassword";
-            TZ = "Europe/Berlin";
-          };
+          environmentFiles = [
+            config.sops.secrets.schwarm-db-envfile.path
+          ];
           extraOptions = [ "--network=schwarm-net" ];
         };
 
@@ -106,14 +105,14 @@ in
           environmentFiles = [
             config.sops.secrets.schwarm-api-envfile.path
           ];
-          extraOptions = [ "--network=schwarm-net" ];
+          extraOptions = [ "--network=schwarm-net" "--pull=always" ];
         };
 
         schwarmplaner-frontend = {
           image = cfg.frontend-image;
           ports = [ "8000:8000" ];
           dependsOn = [ "schwarmplaner-api" ];
-          extraOptions = [ "--network=schwarm-net" ];
+          extraOptions = [ "--network=schwarm-net" "--pull=always" ];
         };
       };
     };
