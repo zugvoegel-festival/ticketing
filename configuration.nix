@@ -8,16 +8,22 @@
       services.bank-automation.enable = true;
 
       services.pretix = {
-        # Actually use our module
         enable = true;
-        # Set the host
         host = "tickets.zugvoegelfestival.org";
-
         instanceName = "Zugvoegel Ticketshop";
         pretixImage = "manulinger/zv-ticketing:pretix-custom-cliques";
-        # Set the acme mail
         acmeMail = "webmaster@zugvoegelfestival.org";
         pretixDataPath = "/var/lib/pretix-data/data";
+      };
+      services.schwarmplaner = {
+        enable = true;
+
+        host = "schwarmplaner.zugvoegelfestival.org";
+        apiHost = "api.zugvoegelfestival.org";
+        frontend-image = "manulinger/zv-schwarmplaner:frontend";
+        api-image = "manulinger/zv-schwarmplaner:api";
+        nginx-image = "manulinger/zv-schwarmplaner:nginx";
+        acmeMail = "webmaster@zugvoegelfestival.org";
       };
       services.backup = {
         enable = true;
