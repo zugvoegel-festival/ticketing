@@ -13,6 +13,13 @@ in
       description = "Path to use to dump sql for backups";
     };
 
+    mysqlDumpPath = mkOption {
+      type = types.str;
+      default = "/var/lib/schwarmplaner/dumps";
+      example = "/var/lib/backups";
+      description = "Path to use to dump sql for backups";
+    };
+
     backupDirs = mkOption {
       type = types.listOf types.str;
       default = [ config.zugvoegel.services.backup.postgresDumpPath ];
@@ -46,6 +53,7 @@ in
     systemd.services.restic-backups-zv-data.preStart =
       ''
         mkdir -p "${cfg.postgresDumpPath}"
+        mkdir -p "${cfg.mysqlDumpPath}"
       '';
 
     services.restic.backups =
@@ -65,9 +73,11 @@ in
           passwordFile = config.sops.secrets.backup-passwordfile.path;
           backupPrepareCommand = ''
             ${config.virtualisation.docker.package}/bin/docker exec postgresql pg_dumpall -U postgres -h postgresql > ${cfg.postgresDumpPath}/dump_"$(date +"%Y-%m-%d").sql"
+            ${config.virtualisation.docker.package}/bin/docker exec schwarmplaner-db mysqldump -u root -pHurraWirFliegen24 schwarmDatabase > ${cfg.mysqlDumpPath}/dump_"$(date +"%Y-%m-%d").sql"
           '';
           backupCleanupCommand = ''
             rm "${cfg.postgresDumpPath}/dump_$(date +"%Y-%m-%d").sql"
+            rm "${cfg.mysqlDumpPath}/dump_$(date +"%Y-%m-%d").sql"
           '';
           timerConfig =
             {
