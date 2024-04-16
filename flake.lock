@@ -5,11 +5,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1713262442,
-        "narHash": "sha256-hhHDQJ/kElsMeKUPBoQWVTgzcweSjXLKlkics6+Rb5Q=",
+        "lastModified": 1713271164,
+        "narHash": "sha256-4FyuNhyIQgEPChH/bwTKJsX8m9YiDPoWtgajO/Rh33M=",
         "owner": "zugvoegel-festival",
         "repo": "pretix-bank-automation",
-        "rev": "c1c80f903c7bf8cf45289362f8039d33857f3840",
+        "rev": "e4b97cf4f55eff0233d0177cbcdcc9806123703c",
         "type": "github"
       },
       "original": {
