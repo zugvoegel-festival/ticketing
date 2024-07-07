@@ -45,3 +45,15 @@ Secrets are encrypted and managed with [sops-nix](https://github.com/Mic92/sops-
 ```sh
 nix-shell -p sops --run "sops secrets/secrets.yaml"
 ```
+
+### Database Administration
+
+A user with restricted access (no shell access, only forwarding of port `3306`)
+is provided for administrative tasks on the MySQL database.
+
+Example usage:
+```sh
+ssh -N -L 3306:127.0.0.1:3306 db-user@185.232.69.172
+mysql -h 127.0.0.1 -u root -p<TheDatabasePassword>
+```
+

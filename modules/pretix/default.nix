@@ -36,6 +36,7 @@ in
       example = "admin@pretix.eu";
       description = "Email for SSL Certificate Renewal";
     };
+
     pretixDataPath = mkOption {
       type = types.str;
       default = "/var/lib/pretix-data/data";
@@ -43,9 +44,38 @@ in
       description = "Path to use for persisten pretix data";
     };
 
+    dbUserName = mkOption {
+      type = types.str;
+      default = "db-user";
+      example = "my-db-user";
+      description = ''
+        Name of a user which will only be allowed to forward Port 3306
+      '';
+    };
+
   };
 
   config = mkIf cfg.enable {
+
+    # User without login access. Allows port-forwarding to access the database.
+    users.users.${cfg.dbUserName} = {
+      isNormalUser = true;
+      description = "User for accessing the DB externally";
+      group = cfg.dbUserName;
+      createHome = false;
+      shell = "${pkgs.coreutils}/bin/false";
+    };
+
+    users.groups.${cfg.dbUserName}.name = cfg.dbUserName;
+
+    services.openssh.extraConfig = ''
+      Match user ${cfg.dbUserName}
+        PermitOpen 127.0.0.1:3306
+        X11Forwarding no
+        AllowAgentForwarding no
+        ForceCommand ${pkgs.coreutils}/bin/false
+        PermitTTY no
+    '';
 
     # Some helper scripts to help while debugging
     environment.systemPackages =
