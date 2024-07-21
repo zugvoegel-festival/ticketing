@@ -28,6 +28,8 @@ generated as the DNS challenge will fail.
 Further deployments can be done with:
 
 ```sh
+nix-shell -p nixos-rebuild 
+
 nixos-rebuild switch --flake '.#pretix-server-01' --target-host root@185.232.69.172  --build-host root@185.232.69.172 
 ```
 
