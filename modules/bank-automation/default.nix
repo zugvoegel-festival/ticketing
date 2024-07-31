@@ -15,7 +15,7 @@ in
       wantedBy = [ "timers.target" ];
       timerConfig = {
         Unit = "bank-automation.service";
-        OnCalendar = [ "5:59" "11:59" "17:59" "23:59" ];
+        OnCalendar = [ "5:59" "7:59" "9:59" "11:59" "13:59" "15:59" "17:59" "19:59" "23:59" ];
         Persistent = true;
       };
     };
