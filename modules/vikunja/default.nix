@@ -19,14 +19,30 @@ in
 
     services.vikunja = {
       enable = true;
-      environmentFiles = [ sops.secrets.vikunja-envfile.path ];
+      environmentFiles = [ config.sops.secrets.vikunja-envfile.path ];
       frontendHostname = cfg.host;
       frontendScheme = "https";
       settings = {
-        mailer.enable = true;
-        mailer.host = "smtp.ionos.de";
-        mailer.username = "no-reply@feuersalamander-nippes.de";
-        mailer.frommail = "no-reply@feuersalamander-nippes.de";
+        mailer = {
+          enabled = true;
+          host = "smtp.ionos.de";
+          username = "no-reply@feuersalamander-nippes.de";
+          fromemail = "no-reply@feuersalamander-nippes.de";
+          port = 587;
+          authtype = "plain";
+
+        };
+        service = {
+          enableregistration = true;
+          customlogourl = "http://feuersalamander-nippes.de/wp-content/themes/vito13-child-of-twentythirteen/img/site-logos/feuersalamander-logoicon.png";
+        };
+        log.mail = "on";
+        defaulsettings = {
+          discoverable_by_name = true;
+          week_start = 1;
+
+
+        };
       };
     };
 
