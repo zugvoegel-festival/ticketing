@@ -7,6 +7,8 @@
     {
       services.bank-automation.enable = true;
 
+      services.vikunja.enable = true;
+
       services.pretix = {
         enable = true;
         host = "tickets.zugvoegelfestival.org";
