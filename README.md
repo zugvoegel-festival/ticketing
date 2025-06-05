@@ -47,3 +47,13 @@ Secrets are encrypted and managed with [sops-nix](https://github.com/Mic92/sops-
 ```sh
 nix-shell -p sops --run "sops secrets/secrets.yaml"
 ```
+
+### Flake Updates
+
+To update the dependencies in the flake:
+
+```sh
+nix flake update
+```
+
+This will update all inputs to their latest versions according to the flake.lock file.
