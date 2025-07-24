@@ -1,38 +1,45 @@
-{ pkgs, ... }: {
+{ pkgs, ... }:
+{
 
-  imports = [
-    ./hardware-configuration.nix
-  ];
-  zugvoegel =
-    {
-      services.bank-automation.enable = true;
+  imports = [ ./hardware-configuration.nix ];
+  zugvoegel = {
+    services.bank-automation.enable = true;
 
-      services.vikunja.enable = true;
+    services.vikunja.enable = true;
 
-      services.pretix = {
-        enable = true;
-        host = "tickets.zugvoegelfestival.org";
-        instanceName = "Zugvoegel Ticketshop";
-        pretixImage = "manulinger/zv-ticketing:pretix-custom-cliques";
-        acmeMail = "webmaster@zugvoegelfestival.org";
-        pretixDataPath = "/var/lib/pretix-data/data";
-      };
-      services.schwarmplaner = {
-        enable = true;
-
-        host = "schwarmplaner.zugvoegelfestival.org";
-        apiHost = "api.zugvoegelfestival.org";
-        frontend-image = "manulinger/zv-schwarmplaner:frontend";
-        api-image = "manulinger/zv-schwarmplaner:api";
-        nginx-image = "manulinger/zv-schwarmplaner:nginx";
-        acmeMail = "webmaster@zugvoegelfestival.org";
-      };
-      services.backup = {
-        enable = true;
-        postgresDumpPath = "/var/lib/pretix-postgresql/dumps";
-        backupDirs = [ "/var/lib/pretix-data/data" "/var/lib/pretix-postgresql/dumps" ]; # didn't know how to ref pretixDataPath
-      };
+    services.pretix = {
+      enable = true;
+      host = "tickets.zugvoegelfestival.org";
+      instanceName = "Zugvoegel Ticketshop";
+      pretixImage = "manulinger/zv-ticketing:pretix-custom-cliques";
+      acmeMail = "webmaster@zugvoegelfestival.org";
+      pretixDataPath = "/var/lib/pretix-data/data";
     };
+    services.schwarmplaner = {
+      enable = true;
+      host = "schwarmplaner.zugvoegelfestival.org";
+      apiHost = "api.zugvoegelfestival.org";
+      frontend-image = "manulinger/zv-schwarmplaner:frontend";
+      api-image = "manulinger/zv-schwarmplaner:api";
+      nginx-image = "manulinger/zv-schwarmplaner:nginx";
+      acmeMail = "webmaster@zugvoegelfestival.org";
+    };
+    services.audiotranscriber = {
+      enable = true;
+      host = "audiotranscriber.loco.vision";
+      app-image = "manulinger/zv-schwarmplaner:audio-transcriber";
+      nginx-image = "manulinger/zv-schwarmplaner:nginx";
+      acmeMail = "huettel.m@gmail.com";
+    };
+    services.backup = {
+      enable = true;
+      postgresDumpPath = "/var/lib/pretix-postgresql/dumps";
+      backupDirs = [
+        "/var/lib/pretix-data/data"
+        "/var/lib/pretix-postgresql/dumps"
+      ]; # didn't know how to ref pretixDataPath
+    };
+  };
 
   sops.defaultSopsFile = ./secrets/secrets.yaml;
 
@@ -46,7 +53,10 @@
   # Networking and SSH
   networking = {
     firewall.enable = true;
-    firewall.interfaces.eth0.allowedTCPPorts = [ 80 443 ];
+    firewall.interfaces.eth0.allowedTCPPorts = [
+      80
+      443
+    ];
     hostName = "pretix-server-01";
     interfaces.eth0.useDHCP = true;
   };
