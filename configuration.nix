@@ -39,6 +39,16 @@
         "/var/lib/pretix-postgresql/dumps"
       ]; # didn't know how to ref pretixDataPath
     };
+    services.observability = {
+      enable = true;
+      host = "gucken.loco.vision";
+      acmeMail = "huettel.m@gmail.com";
+      retention = {
+        loki = "30d";
+        mimir = "15d";
+        tempo = "7d";
+      };
+    };
   };
 
   sops.defaultSopsFile = ./secrets/secrets.yaml;
