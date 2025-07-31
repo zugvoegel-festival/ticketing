@@ -18,7 +18,6 @@ in
       default = null;
       example = "dockeruser/repository-name:tag";
       description = "Docker image with tag";
-      volumes = [ "/var/lib/audiotranscriber/data:/app/data" ];
     };
 
     nginx-image = mkOption {
@@ -38,6 +37,18 @@ in
   config = mkIf cfg.enable {
 
     sops.secrets.audiotranscriber-envfile = { };
+
+    systemd.services.init-audiotranscriber-data-dir = {
+      description = "Create audiotranscriber data directory";
+      wantedBy = [ "multi-user.target" ];
+      before = [ "docker-audiotranscriber-app.service" ];
+      serviceConfig.Type = "oneshot";
+      script = ''
+        mkdir -p /var/lib/audiotranscriber/data
+        chown -R 1000:1000 /var/lib/audiotranscriber/data
+        chmod -R 755 /var/lib/audiotranscriber/data
+      '';
+    };
 
     systemd.services.init-audiotranscriber-net = {
       description = "Create the network bridge audiotranscriber-net";
@@ -74,6 +85,7 @@ in
         audiotranscriber-app = {
           image = cfg.app-image;
           ports = [ "8001:3000" ];
+          volumes = [ "/var/lib/audiotranscriber/data:/app/data" ];
           extraOptions = [
             "--network=audiotranscriber-net"
             "--pull=always"
