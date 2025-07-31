@@ -18,7 +18,9 @@ in
       default = null;
       example = "dockeruser/repository-name:tag";
       description = "Docker image with tag";
+      volumes = [ "/var/lib/audiotranscriber/data:/app/data" ];
     };
+
     nginx-image = mkOption {
       type = types.str;
       default = null;

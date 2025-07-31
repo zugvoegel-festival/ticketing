@@ -27,7 +27,7 @@
     services.audiotranscriber = {
       enable = true;
       host = "audiotranscriber.loco.vision";
-      app-image = "manulinger/zv-schwarmplaner:audio-transcriber";
+      app-image = "manulinger/audio-transcriber:latest";
       nginx-image = "manulinger/zv-schwarmplaner:nginx";
       acmeMail = "huettel.m@gmail.com";
     };
