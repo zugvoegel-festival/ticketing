@@ -103,6 +103,9 @@ in
         enableACME = true;
         forceSSL = true;
         locations."/".proxyPass = "http://localhost:8001";
+        locations."/".extraConfig = ''
+          client_max_body_size 1024M;
+        '';
       };
     };
   };
