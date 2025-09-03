@@ -86,6 +86,7 @@ in
           image = cfg.app-image;
           ports = [ "8001:3000" ];
           volumes = [ "/var/lib/audiotranscriber/data:/app/data" ];
+          environmentFiles = [ config.sops.secrets.audiotranscriber-envfile.path ];
           extraOptions = [
             "--network=audiotranscriber-net"
             "--pull=always"

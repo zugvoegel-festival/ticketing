@@ -37,6 +37,7 @@
       backupDirs = [
         "/var/lib/pretix-data/data"
         "/var/lib/pretix-postgresql/dumps"
+        "/var/lib/audiotranscriber/data"
       ]; # didn't know how to ref pretixDataPath
     };
   };
