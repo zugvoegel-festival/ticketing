@@ -19,18 +19,24 @@
       enable = true;
       host = "schwarmplaner.zugvoegelfestival.org";
       apiHost = "api.zugvoegelfestival.org";
-      frontend-image = "manulinger/zv-schwarmplaner:frontend";
-      api-image = "manulinger/zv-schwarmplaner:api";
-      nginx-image = "manulinger/zv-schwarmplaner:nginx";
       acmeMail = "webmaster@zugvoegelfestival.org";
     };
+
     services.audiotranscriber = {
       enable = true;
       host = "audiotranscriber.loco.vision";
       app-image = "manulinger/audio-transcriber:latest";
       nginx-image = "manulinger/zv-schwarmplaner:nginx";
-      acmeMail = "huettel.m@gmail.com";
+      acmeMail = "webmaster@zugvoegelfestival.org";
     };
+
+    services.minio = {
+      enable = true;
+      host = "minio.loco.vision";
+      consoleHost = "minio-console.loco.vision";
+      acmeMail = "webmaster@zugvoegelfestival.org";
+    };
+
     services.backup = {
       enable = true;
       postgresDumpPath = "/var/lib/pretix-postgresql/dumps";
@@ -38,6 +44,7 @@
         "/var/lib/pretix-data/data"
         "/var/lib/pretix-postgresql/dumps"
         "/var/lib/audiotranscriber/data"
+        "/var/lib/minio/data"
       ]; # didn't know how to ref pretixDataPath
     };
   };

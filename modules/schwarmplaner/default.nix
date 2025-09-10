@@ -18,21 +18,22 @@ in
       example = "api.megaclan3000.de";
       description = "Host api serving service";
     };
+
     frontend-image = mkOption {
       type = types.str;
-      default = null;
+      default = "manulinger/zv-schwarmplaner:frontend";
       example = "dockeruser/repository-name:tag";
       description = "Docker image with tag";
     };
     api-image = mkOption {
       type = types.str;
-      default = null;
+      default = "manulinger/zv-schwarmplaner:api";
       example = "dockeruser/repository-name:tag";
       description = "Docker image with tag";
     };
     nginx-image = mkOption {
       type = types.str;
-      default = null;
+      default = "manulinger/zv-schwarmplaner:nginx";
       example = "dockeruser/repository-name:tag";
       description = "Docker image with tag";
     };
@@ -81,7 +82,11 @@ in
       containers = {
         schwarmplaner-nginx = {
           image = cfg.nginx-image;
-          dependsOn = [ "schwarmplaner-frontend" "schwarmplaner-api" "schwarmplaner-db" ];
+          dependsOn = [
+            "schwarmplaner-frontend"
+            "schwarmplaner-api"
+            "schwarmplaner-db"
+          ];
           ports = [ "90:80" ];
           extraOptions = [ "--network=schwarm-net" ];
         };
@@ -92,9 +97,7 @@ in
             "/var/lib/schwarmplaner/mysql/conf.d:/etc/mysql/conf.d"
             "/var/lib/schwarmplaner/mysql/data:/var/lib/mysql"
           ];
-          environmentFiles = [
-            config.sops.secrets.schwarm-db-envfile.path
-          ];
+          environmentFiles = [ config.sops.secrets.schwarm-db-envfile.path ];
           extraOptions = [ "--network=schwarm-net" ];
         };
 
@@ -102,17 +105,21 @@ in
           image = cfg.api-image;
           dependsOn = [ "schwarmplaner-db" ];
           ports = [ "3000:3000" ];
-          environmentFiles = [
-            config.sops.secrets.schwarm-api-envfile.path
+          environmentFiles = [ config.sops.secrets.schwarm-api-envfile.path ];
+          extraOptions = [
+            "--network=schwarm-net"
+            "--pull=always"
           ];
-          extraOptions = [ "--network=schwarm-net" "--pull=always" ];
         };
 
         schwarmplaner-frontend = {
           image = cfg.frontend-image;
           ports = [ "8000:8000" ];
           dependsOn = [ "schwarmplaner-api" ];
-          extraOptions = [ "--network=schwarm-net" "--pull=always" ];
+          extraOptions = [
+            "--network=schwarm-net"
+            "--pull=always"
+          ];
         };
       };
     };
@@ -131,9 +138,7 @@ in
         enableACME = true;
         forceSSL = true;
         locations."/".proxyPass = "http://localhost:90";
-
       };
-
     };
   };
 }

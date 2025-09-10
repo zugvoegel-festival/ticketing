@@ -4,6 +4,15 @@ The following was tested on [netcup](https://netcup.de) using a `VPS 500 G10s`
 server. Other providers or server variants will probably work too, but are
 untested at this point.
 
+This deployment includes:
+- **Pretix**: Event ticketing system
+- **Vikunja**: Task management and project organization
+- **Schwarmplaner**: Volunteer shift planning system
+- **Audio Transcriber**: Audio transcription service
+- **MinIO**: S3-compatible object storage
+- **Bank Automation**: Automated bank transaction processing
+- **Automated Backup**: Regular backups of all services
+
 After booking the `VPS 500 G10s` you will get an e-mail with the root
 credentials and a `debian-minimal` image preinstalled. 
 
@@ -47,6 +56,27 @@ Secrets are encrypted and managed with [sops-nix](https://github.com/Mic92/sops-
 ```sh
 nix-shell -p sops --run "sops secrets/secrets.yaml"
 ```
+
+The secrets file includes configuration for all services:
+- MinIO root credentials (`minio-envfile`)
+- Pretix email configuration (`pretix-envfile`)
+- Vikunja mailer settings (`vikunja-envfile`)
+- Schwarmplaner database and API settings (`schwarm-db-envfile`, `schwarm-api-envfile`)
+- Audio transcriber configuration (`audiotranscriber-envfile`)
+- Bank automation credentials (`bank-envfile`)
+- Backup service credentials (`backup-envfile`, `backup-passwordfile`)
+
+### Services and URLs
+
+Once deployed, the following services will be available:
+
+- **Pretix (Ticketing)**: https://tickets.zugvoegelfestival.org
+- **Schwarmplaner (Volunteer Management)**: https://schwarmplaner.zugvoegelfestival.org
+- **Schwarmplaner API**: https://api.zugvoegelfestival.org
+- **Audio Transcriber**: https://audiotranscriber.loco.vision
+- **Vikunja (Task Management)**: https://brett.feuersalamander-nippes.de
+- **MinIO S3 API**: https://minio.zugvoegelfestival.org
+- **MinIO Console**: https://minio-console.zugvoegelfestival.org
 
 ### Flake Updates
 

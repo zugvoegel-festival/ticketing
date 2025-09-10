@@ -73,14 +73,8 @@ in
     };
 
     virtualisation.oci-containers = {
-      backend = "docker"; # Podman is the default backend.
+      backend = "docker";
       containers = {
-        audiotranscriber-nginx = {
-          image = cfg.nginx-image;
-          dependsOn = [ "audiotranscriber-app" ];
-          ports = [ "91:80" ];
-          extraOptions = [ "--network=audiotranscriber-net" ];
-        };
 
         audiotranscriber-app = {
           image = cfg.app-image;
