@@ -65,6 +65,12 @@
       80
       443
     ];
+    # Allow Docker containers to access MinIO
+    firewall.trustedInterfaces = [
+      "docker0"
+      "br-+"
+    ];
+    firewall.allowedTCPPorts = [ 9000 ];
     hostName = "pretix-server-01";
     interfaces.eth0.useDHCP = true;
   };

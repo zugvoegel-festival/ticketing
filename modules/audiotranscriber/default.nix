@@ -82,8 +82,8 @@ in
           volumes = [ "/var/lib/audiotranscriber/data:/app/data" ];
           environmentFiles = [ config.sops.secrets.audiotranscriber-envfile.path ];
           extraOptions = [
-            "--network=audiotranscriber-net"
             "--pull=always"
+            "--network=audiotranscriber-net"
           ];
         };
       };
