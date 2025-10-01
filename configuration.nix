@@ -47,6 +47,14 @@
         "/var/lib/minio/data"
       ]; # didn't know how to ref pretixDataPath
     };
+
+    services.monitoring = {
+      enable = true;
+      loki.enable = true;
+      grafana.enable = true;
+      prometheus.enable = true;
+      promtail.enable = true;
+    };
   };
 
   sops.defaultSopsFile = ./secrets/secrets.yaml;

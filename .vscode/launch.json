@@ -1,0 +1,28 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Update",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "nix flake update",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Deploy",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "./deploy.sh",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Update and Deploy",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "./update-and-deploy.sh",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

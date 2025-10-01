@@ -1,0 +1,15 @@
+{
+  "servers": {
+
+ 
+    "responsible-vibe-mcp": {
+      "command": "npx",
+      "args": ["responsible-vibe-mcp"]
+    },"nixos": {
+      "command": "nix",
+      "args": ["run", "github:utensils/mcp-nixos", "--"]
+    }
+  
+}
+  
+}
