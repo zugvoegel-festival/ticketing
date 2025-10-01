@@ -69,6 +69,48 @@ in
       default = true;
       description = "Open firewall ports for monitoring services";
     };
+
+    # Authentication Options
+    grafanaAuth = {
+      adminUser = mkOption {
+        type = types.str;
+        default = "admin";
+        description = "Grafana admin username";
+      };
+
+      adminPasswordFile = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "Path to file containing admin password (SOPS secret)";
+      };
+
+      adminEmail = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = "admin@example.com";
+        description = "Admin email address";
+      };
+
+      disableSignup = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Prevent new user registration";
+      };
+
+      secretKeyFile = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "Path to secret key file for session signing (SOPS secret)";
+      };
+    };
+
+    prometheusAuth = {
+      webConfigFile = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "Web config file for Prometheus basic auth";
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -77,7 +119,24 @@ in
       enable = true;
       configuration = {
         auth_enabled = false;
-        server.http_listen_port = cfg.lokiPort;
+        server = {
+          http_listen_port = cfg.lokiPort;
+          grpc_listen_port = cfg.lokiPort + 1000; # Use lokiPort + 1000 for GRPC (e.g., 4100 for GRPC when HTTP is 3100)
+        };
+
+        # Single-process mode configuration
+        target = "all";
+
+        # Disable structured metadata to avoid schema v13 requirement
+        limits_config = {
+          allow_structured_metadata = false;
+        };
+
+        # Configure for single-process mode without external dependencies
+        memberlist = {
+          join_members = [ ];
+        };
+
         common = {
           path_prefix = "/var/lib/loki";
           storage.filesystem = {
@@ -85,6 +144,12 @@ in
             rules_directory = "/var/lib/loki/rules";
           };
           replication_factor = 1;
+          ring = {
+            instance_addr = "127.0.0.1";
+            kvstore = {
+              store = "inmemory";
+            };
+          };
         };
         schema_config.configs = [
           {
@@ -107,9 +172,15 @@ in
       enable = true;
       settings = {
         server.http_port = cfg.grafanaPort;
-        security = {
-          admin_user = "admin";
-          admin_password = "admin";
+        security =
+          {
+            admin_user = cfg.grafanaAuth.adminUser;
+            admin_password = "admin"; # TODO: Use SOPS secret file
+            disable_initial_admin_creation = false;
+          }
+          // optionalAttrs (cfg.grafanaAuth.adminEmail != null) { admin_email = cfg.grafanaAuth.adminEmail; };
+        users = {
+          allow_sign_up = !cfg.grafanaAuth.disableSignup;
         };
       };
       provision = {
@@ -132,17 +203,50 @@ in
             }
           ];
         };
+        dashboards.settings = {
+          apiVersion = 1;
+          providers = [
+            {
+              name = "server-health";
+              type = "file";
+              options.path = "/var/lib/grafana/dashboards";
+              updateIntervalSeconds = 30;
+              allowUiUpdates = true;
+              disableDeletion = false;
+            }
+          ];
+        };
       };
+    };
+
+    # Node Exporter - System metrics
+    services.prometheus.exporters.node = {
+      enable = true;
+      port = 9100;
+      enabledCollectors = [
+        "systemd"
+        "textfile"
+        "filesystem"
+        "loadavg"
+        "meminfo"
+        "netdev"
+        "stat"
+      ];
     };
 
     # Prometheus - Metrics collection
     services.prometheus = {
       enable = true;
       port = cfg.prometheusPort;
+      # webConfigFile = mkIf (cfg.prometheusAuth.webConfigFile != null) cfg.prometheusAuth.webConfigFile;
       scrapeConfigs = [
         {
           job_name = "prometheus";
           static_configs = [ { targets = [ "127.0.0.1:${toString cfg.prometheusPort}" ]; } ];
+        }
+        {
+          job_name = "node";
+          static_configs = [ { targets = [ "127.0.0.1:9100" ]; } ];
         }
         {
           job_name = "grafana";
@@ -181,60 +285,46 @@ in
       };
     };
 
-    # Nginx virtual hosts for monitoring services
-    services.nginx =
-      mkIf (cfg.grafanaHost != null || cfg.prometheusHost != null || cfg.lokiHost != null)
-        {
-          enable = true;
-          virtualHosts =
-            (mkIf (cfg.grafanaHost != null) {
-              "${cfg.grafanaHost}" = {
-                forceSSL = true;
-                enableACME = true;
-                locations."/" = {
-                  proxyPass = "http://127.0.0.1:${toString cfg.grafanaPort}";
-                  proxyWebsockets = true;
-                  extraConfig = ''
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                  '';
-                };
-              };
-            })
-            // (mkIf (cfg.prometheusHost != null) {
-              "${cfg.prometheusHost}" = {
-                forceSSL = true;
-                enableACME = true;
-                locations."/" = {
-                  proxyPass = "http://127.0.0.1:${toString cfg.prometheusPort}";
-                  extraConfig = ''
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                  '';
-                };
-              };
-            })
-            // (mkIf (cfg.lokiHost != null) {
-              "${cfg.lokiHost}" = {
-                forceSSL = true;
-                enableACME = true;
-                locations."/" = {
-                  proxyPass = "http://127.0.0.1:${toString cfg.lokiPort}";
-                  extraConfig = ''
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
-                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    proxy_set_header X-Forwarded-Proto $scheme;
-                  '';
-                };
-              };
-            });
-        };
+    # Dashboard files setup
+    systemd.tmpfiles.rules = [ "d /var/lib/grafana/dashboards 0755 grafana grafana -" ];
 
+    environment.etc = {
+      "grafana/dashboards/server-health-overview.json" = {
+        text = builtins.readFile ./dashboards/server-health-overview.json;
+        mode = "0644";
+      };
+      "grafana/dashboards/docker-services-health.json" = {
+        text = builtins.readFile ./dashboards/docker-services-health.json;
+        mode = "0644";
+      };
+      "grafana/dashboards/system-resources.json" = {
+        text = builtins.readFile ./dashboards/system-resources.json;
+        mode = "0644";
+      };
+    };
+
+    # Nginx virtual hosts for monitoring services
+    services.nginx = {
+      enable = true;
+      recommendedProxySettings = true;
+      recommendedTlsSettings = true;
+      virtualHosts."${cfg.grafanaHost}" = {
+        forceSSL = true;
+        enableACME = true;
+        locations."/".proxyPass = "http://127.0.0.1:${toString cfg.grafanaPort}";
+        locations."/".proxyWebsockets = true;
+      };
+      virtualHosts."${cfg.prometheusHost}" = {
+        forceSSL = true;
+        enableACME = true;
+        locations."/".proxyPass = "http://127.0.0.1:${toString cfg.prometheusPort}";
+      };
+      virtualHosts."${cfg.lokiHost}" = {
+        forceSSL = true;
+        enableACME = true;
+        locations."/".proxyPass = "http://127.0.0.1:${toString cfg.lokiPort}";
+      };
+    };
     # ACME configuration for SSL certificates
     security.acme =
       mkIf
@@ -263,8 +353,30 @@ in
 
     # Ensure service dependencies
     systemd.services = {
-      grafana.after = [ "loki.service" ];
+      grafana.after = [
+        "loki.service"
+        "grafana-dashboard-setup.service"
+      ];
       promtail.after = [ "loki.service" ];
+
+      # Copy dashboard files to Grafana directory
+      grafana-dashboard-setup = {
+        description = "Setup Grafana dashboards";
+        wantedBy = [ "multi-user.target" ];
+        before = [ "grafana.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /var/lib/grafana/dashboards";
+          ExecStart = [
+            "${pkgs.coreutils}/bin/cp /etc/grafana/dashboards/server-health-overview.json /var/lib/grafana/dashboards/"
+            "${pkgs.coreutils}/bin/cp /etc/grafana/dashboards/docker-services-health.json /var/lib/grafana/dashboards/"
+            "${pkgs.coreutils}/bin/cp /etc/grafana/dashboards/system-resources.json /var/lib/grafana/dashboards/"
+          ];
+          User = "grafana";
+          Group = "grafana";
+        };
+      };
     };
   };
 }
