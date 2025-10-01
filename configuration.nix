@@ -5,7 +5,10 @@
   zugvoegel = {
     services.bank-automation.enable = true;
 
-    services.vikunja.enable = true;
+    services.vikunja = {
+      enable = true;
+      smtpPort = 587;
+    };
 
     services.pretix = {
       enable = true;
@@ -14,12 +17,17 @@
       pretixImage = "manulinger/zv-ticketing:pretix-custom-cliques";
       acmeMail = "webmaster@zugvoegelfestival.org";
       pretixDataPath = "/var/lib/pretix-data/data";
+      port = 12345;
     };
     services.schwarmplaner = {
       enable = true;
       host = "schwarmplaner.zugvoegelfestival.org";
       apiHost = "api.zugvoegelfestival.org";
       acmeMail = "webmaster@zugvoegelfestival.org";
+      nginxPort = 90;
+      mysqlPort = 3306;
+      apiPort = 3000;
+      frontendPort = 8000;
     };
 
     services.audiotranscriber = {
@@ -28,6 +36,7 @@
       app-image = "manulinger/audio-transcriber:latest";
       nginx-image = "manulinger/zv-schwarmplaner:nginx";
       acmeMail = "webmaster@zugvoegelfestival.org";
+      port = 8001;
     };
 
     services.minio = {
@@ -35,6 +44,8 @@
       host = "minio.loco.vision";
       consoleHost = "minio-console.loco.vision";
       acmeMail = "webmaster@zugvoegelfestival.org";
+      port = 9000;
+      consolePort = 9001;
     };
 
     services.backup = {
@@ -50,10 +61,14 @@
 
     services.monitoring = {
       enable = true;
-      loki.enable = true;
-      grafana.enable = true;
-      prometheus.enable = true;
-      promtail.enable = true;
+      grafanaHost = "grafana.zugvoegelfestival.org";
+      prometheusHost = "prometheus.zugvoegelfestival.org";
+      lokiHost = "loki.zugvoegelfestival.org";
+      acmeMail = "webmaster@zugvoegelfestival.org";
+      grafanaPort = 3000;
+      lokiPort = 3100;
+      prometheusPort = 9090;
+      promtailPort = 9080;
     };
   };
 

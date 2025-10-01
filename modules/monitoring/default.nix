@@ -12,60 +12,56 @@ in
   options.zugvoegel.services.monitoring = {
     enable = mkEnableOption "monitoring stack (Loki, Grafana, Prometheus, Promtail)";
 
-    loki = {
-      enable = mkEnableOption "Loki log aggregation service";
-      port = mkOption {
-        type = types.port;
-        default = 3100;
-        description = "Port for Loki HTTP API";
-      };
-      dataDir = mkOption {
-        type = types.str;
-        default = "/var/lib/loki";
-        description = "Data directory for Loki";
-      };
+    grafanaHost = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      example = "grafana.example.com";
+      description = "Host serving Grafana dashboard service";
     };
 
-    grafana = {
-      enable = mkEnableOption "Grafana dashboard service";
-      port = mkOption {
-        type = types.port;
-        default = 3000;
-        description = "Port for Grafana web interface";
-      };
-      adminPassword = mkOption {
-        type = types.str;
-        default = "admin123";
-        description = "Admin password for Grafana";
-      };
-      provisionDashboards = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Enable automatic dashboard provisioning";
-      };
+    prometheusHost = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      example = "prometheus.example.com";
+      description = "Host serving Prometheus metrics service";
     };
 
-    prometheus = {
-      enable = mkEnableOption "Prometheus metrics collection service";
-      port = mkOption {
-        type = types.port;
-        default = 9090;
-        description = "Port for Prometheus web interface";
-      };
-      retention = mkOption {
-        type = types.str;
-        default = "200h";
-        description = "How long to retain metrics data";
-      };
+    lokiHost = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      example = "loki.example.com";
+      description = "Host serving Loki logs service";
     };
 
-    promtail = {
-      enable = mkEnableOption "Promtail log collection service";
-      port = mkOption {
-        type = types.port;
-        default = 9080;
-        description = "Port for Promtail HTTP server";
-      };
+    acmeMail = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      example = "admin@example.com";
+      description = "Email for SSL Certificate Renewal";
+    };
+
+    grafanaPort = mkOption {
+      type = types.port;
+      default = 3000;
+      description = "Port for Grafana dashboard service";
+    };
+
+    lokiPort = mkOption {
+      type = types.port;
+      default = 3100;
+      description = "Port for Loki logs service";
+    };
+
+    prometheusPort = mkOption {
+      type = types.port;
+      default = 9090;
+      description = "Port for Prometheus metrics service";
+    };
+
+    promtailPort = mkOption {
+      type = types.port;
+      default = 9080;
+      description = "Port for Promtail log collection service";
     };
 
     openFirewall = mkOption {
@@ -76,82 +72,47 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Enable native NixOS services
-    services.loki = mkIf cfg.loki.enable {
+    # Loki - Log aggregation
+    services.loki = {
       enable = true;
       configuration = {
         auth_enabled = false;
-        server = {
-          http_listen_port = cfg.loki.port;
-          grpc_listen_port = 9096;
-        };
+        server.http_listen_port = cfg.lokiPort;
         common = {
-          instance_addr = "127.0.0.1";
-          path_prefix = cfg.loki.dataDir;
-          storage = {
-            filesystem = {
-              chunks_directory = "${cfg.loki.dataDir}/chunks";
-              rules_directory = "${cfg.loki.dataDir}/rules";
-            };
+          path_prefix = "/var/lib/loki";
+          storage.filesystem = {
+            chunks_directory = "/var/lib/loki/chunks";
+            rules_directory = "/var/lib/loki/rules";
           };
           replication_factor = 1;
-          ring = {
-            kvstore = {
-              store = "inmemory";
+        };
+        schema_config.configs = [
+          {
+            from = "2020-10-24";
+            store = "boltdb-shipper";
+            object_store = "filesystem";
+            schema = "v11";
+            index = {
+              prefix = "index_";
+              period = "24h";
             };
-          };
-        };
-        query_range = {
-          results_cache = {
-            cache = {
-              embedded_cache = {
-                enabled = true;
-                max_size_mb = 100;
-              };
-            };
-          };
-        };
-        schema_config = {
-          configs = [
-            {
-              from = "2020-10-24";
-              store = "boltdb-shipper";
-              object_store = "filesystem";
-              schema = "v11";
-              index = {
-                prefix = "index_";
-                period = "24h";
-              };
-            }
-          ];
-        };
-        ruler = {
-          alertmanager_url = "http://localhost:9093";
-        };
-        analytics = {
-          reporting_enabled = false;
-        };
+          }
+        ];
+        analytics.reporting_enabled = false;
       };
-      dataDir = cfg.loki.dataDir;
     };
 
-    services.grafana = mkIf cfg.grafana.enable {
+    # Grafana - Dashboards and visualization
+    services.grafana = {
       enable = true;
       settings = {
-        server = {
-          http_port = cfg.grafana.port;
-          http_addr = "127.0.0.1";
-        };
+        server.http_port = cfg.grafanaPort;
         security = {
           admin_user = "admin";
-          admin_password = cfg.grafana.adminPassword;
-        };
-        plugins = {
-          enable_alpha = true;
+          admin_password = "admin";
         };
       };
-      declarativePlugins = with pkgs.grafanaPlugins; [ grafana-polystat-panel ];
-      provision = mkIf cfg.grafana.provisionDashboards {
+      provision = {
         enable = true;
         datasources.settings = {
           apiVersion = 1;
@@ -160,244 +121,59 @@ in
               name = "Loki";
               type = "loki";
               access = "proxy";
-              url = "http://127.0.0.1:${toString cfg.loki.port}";
+              url = "http://127.0.0.1:${toString cfg.lokiPort}";
               isDefault = true;
-              editable = true;
-              jsonData = {
-                maxLines = 1000;
-              };
             }
             {
               name = "Prometheus";
               type = "prometheus";
               access = "proxy";
-              url = "http://127.0.0.1:${toString cfg.prometheus.port}";
-              isDefault = false;
-              editable = true;
-            }
-          ];
-        };
-        dashboards.settings = {
-          apiVersion = 1;
-          providers = [
-            {
-              name = "default";
-              orgId = 1;
-              folder = "";
-              type = "file";
-              disableDeletion = false;
-              updateIntervalSeconds = 10;
-              allowUiUpdates = true;
-              options = {
-                path = "/var/lib/grafana/dashboards";
-              };
+              url = "http://127.0.0.1:${toString cfg.prometheusPort}";
             }
           ];
         };
       };
     };
 
-    services.prometheus = mkIf cfg.prometheus.enable {
+    # Prometheus - Metrics collection
+    services.prometheus = {
       enable = true;
-      port = cfg.prometheus.port;
-      listenAddress = "127.0.0.1";
-      retentionTime = cfg.retention;
-      globalConfig = {
-        scrape_interval = "15s";
-        evaluation_interval = "15s";
-      };
+      port = cfg.prometheusPort;
       scrapeConfigs = [
         {
           job_name = "prometheus";
-          static_configs = [ { targets = [ "127.0.0.1:${toString cfg.prometheus.port}" ]; } ];
-        }
-        {
-          job_name = "audio-transcriber";
-          static_configs = [ { targets = [ "audio-transcriber:3000" ]; } ];
-          metrics_path = "/api/metrics";
-          scrape_interval = "30s";
-        }
-        {
-          job_name = "loki";
-          static_configs = [ { targets = [ "127.0.0.1:${toString cfg.loki.port}" ]; } ];
+          static_configs = [ { targets = [ "127.0.0.1:${toString cfg.prometheusPort}" ]; } ];
         }
         {
           job_name = "grafana";
-          static_configs = [ { targets = [ "127.0.0.1:${toString cfg.grafana.port}" ]; } ];
+          static_configs = [ { targets = [ "127.0.0.1:${toString cfg.grafanaPort}" ]; } ];
+        }
+        {
+          job_name = "loki";
+          static_configs = [ { targets = [ "127.0.0.1:${toString cfg.lokiPort}" ]; } ];
         }
       ];
     };
 
-    services.promtail = mkIf cfg.promtail.enable {
+    # Promtail - Log collection
+    services.promtail = {
       enable = true;
       configuration = {
-        server = {
-          http_listen_port = cfg.promtail.port;
-          grpc_listen_port = 0;
-        };
-        positions = {
-          filename = "/tmp/positions.yaml";
-        };
-        clients = [ { url = "http://127.0.0.1:${toString cfg.loki.port}/loki/api/v1/push"; } ];
+        server.http_listen_port = cfg.promtailPort;
+        positions.filename = "/tmp/positions.yaml";
+        clients = [ { url = "http://127.0.0.1:${toString cfg.lokiPort}/loki/api/v1/push"; } ];
         scrape_configs = [
-          # Docker container logs
-          {
-            job_name = "docker";
-            docker_sd_configs = [
-              {
-                host = "unix:///var/run/docker.sock";
-                refresh_interval = "5s";
-                filters = [
-                  {
-                    name = "label";
-                    values = [ "logging=promtail" ];
-                  }
-                ];
-              }
-            ];
-            relabel_configs = [
-              {
-                source_labels = [ "__meta_docker_container_name" ];
-                regex = "/(.*)";
-                target_label = "container_name";
-              }
-              {
-                source_labels = [ "__meta_docker_container_log_stream" ];
-                target_label = "logstream";
-              }
-              {
-                source_labels = [ "__meta_docker_container_label_com_docker_compose_service" ];
-                target_label = "service_name";
-              }
-            ];
-            pipeline_stages = [
-              {
-                json = {
-                  expressions = {
-                    level = "level";
-                    timestamp = "time";
-                    message = "msg";
-                    request_id = "requestId";
-                    user_id = "userId";
-                    method = "method";
-                    url = "url";
-                    status_code = "statusCode";
-                    duration = "duration";
-                    type = "type";
-                  };
-                };
-              }
-              {
-                labels = {
-                  level = "";
-                  request_id = "";
-                  user_id = "";
-                  method = "";
-                  status_code = "";
-                  type = "";
-                  service_name = "";
-                  container_name = "";
-                };
-              }
-              {
-                timestamp = {
-                  source = "timestamp";
-                  format = "RFC3339";
-                };
-              }
-              {
-                output = {
-                  source = "message";
-                };
-              }
-            ];
-          }
-          # Audio-transcriber application logs
-          {
-            job_name = "audio-transcriber";
-            static_configs = [
-              {
-                targets = [ "localhost" ];
-                labels = {
-                  job = "audio-transcriber";
-                  __path__ = "/var/log/audio-transcriber/*.log";
-                };
-              }
-            ];
-            pipeline_stages = [
-              {
-                json = {
-                  expressions = {
-                    level = "level";
-                    timestamp = "time";
-                    message = "msg";
-                    request_id = "requestId";
-                    user_id = "userId";
-                    method = "method";
-                    url = "url";
-                    status_code = "statusCode";
-                    duration = "duration";
-                    type = "type";
-                    anamnesis_id = "anamnesisId";
-                    operation = "operation";
-                  };
-                };
-              }
-              {
-                labels = {
-                  level = "";
-                  request_id = "";
-                  user_id = "";
-                  method = "";
-                  status_code = "";
-                  type = "";
-                  anamnesis_id = "";
-                  operation = "";
-                };
-              }
-              {
-                timestamp = {
-                  source = "timestamp";
-                  format = "RFC3339";
-                };
-              }
-              {
-                output = {
-                  source = "message";
-                };
-              }
-            ];
-          }
           # System logs
           {
-            job_name = "system";
-            static_configs = [
+            job_name = "journal";
+            journal = {
+              max_age = "12h";
+              labels.job = "systemd-journal";
+            };
+            relabel_configs = [
               {
-                targets = [ "localhost" ];
-                labels = {
-                  job = "system";
-                  __path__ = "/var/log/syslog";
-                };
-              }
-            ];
-            pipeline_stages = [
-              {
-                regex = {
-                  expression = "^(?P<timestamp>\\S+\\s+\\d+\\s+\\d+:\\d+:\\d+)\\s+(?P<hostname>\\S+)\\s+(?P<service>\\S+?)(\\[(?P<pid>\\d+)\\])?:\\s*(?P<message>.*)$";
-                };
-              }
-              {
-                labels = {
-                  hostname = "";
-                  service = "";
-                  pid = "";
-                };
-              }
-              {
-                timestamp = {
-                  source = "timestamp";
-                  format = "Jan _2 15:04:05";
-                };
+                source_labels = [ "__journal__systemd_unit" ];
+                target_label = "unit";
               }
             ];
           }
@@ -405,35 +181,90 @@ in
       };
     };
 
-    # Configure systemd service ordering
-    systemd.services = {
-      grafana = mkIf cfg.grafana.enable {
-        after = mkIf cfg.loki.enable [ "loki.service" ];
-        wants = mkIf cfg.loki.enable [ "loki.service" ];
-      };
-      promtail = mkIf cfg.promtail.enable {
-        after = mkIf cfg.loki.enable [ "loki.service" ];
-        wants = mkIf cfg.loki.enable [ "loki.service" ];
-      };
-    };
+    # Nginx virtual hosts for monitoring services
+    services.nginx =
+      mkIf (cfg.grafanaHost != null || cfg.prometheusHost != null || cfg.lokiHost != null)
+        {
+          enable = true;
+          virtualHosts =
+            (mkIf (cfg.grafanaHost != null) {
+              "${cfg.grafanaHost}" = {
+                forceSSL = true;
+                enableACME = true;
+                locations."/" = {
+                  proxyPass = "http://127.0.0.1:${toString cfg.grafanaPort}";
+                  proxyWebsockets = true;
+                  extraConfig = ''
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                  '';
+                };
+              };
+            })
+            // (mkIf (cfg.prometheusHost != null) {
+              "${cfg.prometheusHost}" = {
+                forceSSL = true;
+                enableACME = true;
+                locations."/" = {
+                  proxyPass = "http://127.0.0.1:${toString cfg.prometheusPort}";
+                  extraConfig = ''
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                  '';
+                };
+              };
+            })
+            // (mkIf (cfg.lokiHost != null) {
+              "${cfg.lokiHost}" = {
+                forceSSL = true;
+                enableACME = true;
+                locations."/" = {
+                  proxyPass = "http://127.0.0.1:${toString cfg.lokiPort}";
+                  extraConfig = ''
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                  '';
+                };
+              };
+            });
+        };
 
-    # Firewall configuration
+    # ACME configuration for SSL certificates
+    security.acme =
+      mkIf
+        (
+          cfg.acmeMail != null
+          && (cfg.grafanaHost != null || cfg.prometheusHost != null || cfg.lokiHost != null)
+        )
+        {
+          acceptTerms = true;
+          defaults.email = cfg.acmeMail;
+        };
+
+    # Simple firewall configuration
     networking.firewall = mkIf cfg.openFirewall {
       allowedTCPPorts =
-        [ ]
-        ++ (optional cfg.grafana.enable cfg.grafana.port)
-        ++ (optional cfg.loki.enable cfg.loki.port)
-        ++ (optional cfg.prometheus.enable cfg.prometheus.port);
+        [
+          cfg.grafanaPort
+          cfg.lokiPort
+          cfg.prometheusPort
+        ]
+        ++ (optionals (cfg.grafanaHost != null || cfg.prometheusHost != null || cfg.lokiHost != null) [
+          80
+          443
+        ]);
     };
 
-    # Ensure data directories exist with proper permissions
-    systemd.tmpfiles.rules = [
-      (mkIf cfg.loki.enable "d ${cfg.loki.dataDir} 0750 loki loki - -")
-      (mkIf cfg.loki.enable "d ${cfg.loki.dataDir}/chunks 0750 loki loki - -")
-      (mkIf cfg.loki.enable "d ${cfg.loki.dataDir}/rules 0750 loki loki - -")
-      (mkIf cfg.grafana.enable "d /var/lib/grafana/dashboards 0755 grafana grafana - -")
-      (mkIf cfg.grafana.enable "C /var/lib/grafana/dashboards/audio-transcriber-dashboard.json 0644 grafana grafana - ${./dashboards/audio-transcriber-dashboard.json}"
-      )
-    ];
+    # Ensure service dependencies
+    systemd.services = {
+      grafana.after = [ "loki.service" ];
+      promtail.after = [ "loki.service" ];
+    };
   };
 }

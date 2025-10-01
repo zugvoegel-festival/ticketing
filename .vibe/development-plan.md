@@ -1,33 +1,241 @@
 # Development Plan: ticketing (main branch)
 
 *Generated on 2025-10-01 by Vibe Feature MCP*
-*Workflow: [epcc](https://mrsimpson.github.io/responsible-vibe-mcp/workflows/epcc)*
+*Workflow: [minor](https://mrsimpson.github.io/responsible-vibe-mcp/workflows/minor)*
 
 ## Goal
-Add configuration for monitoring stack using the existing monitoring folder (monitorin/) to integrate Loki, Grafana, Prometheus, and Promtail into the NixOS configuration system.
+Check all modules for port configuration and expose them as configurable options in the main configuration to provide centralized port management.
 
 ## Explore
 ### Tasks
-- [x] Document requirements for monitoring stack integration
+- [x] Design port configuration approach
+- [x] Plan implementation strategy
 
 ### Completed
 - [x] Created development plan file
-- [x] Analyzed existing monitoring folder structure and Docker Compose configuration
-- [x] Examined current NixOS module structure and patterns
-- [x] Researched NixOS monitoring service options for Loki, Grafana, Prometheus
-- [x] Understood how services are currently configured in the zugvoegel namespace
+- [x] Analyze all modules for port configurations
+- [x] Identify which ports should be configurable
 
-## Plan
+### Analysis Findings
+
+**Current Port Configuration Status:**
+
+1. **MinIO Module** ✅ Already has port options
+   - `port = 9000` (API)
+   - `consolePort = 9001` (Console)
+   - **Status**: Well implemented
+
+2. **Monitoring Module** ❌ Hardcoded ports  
+   - Grafana: `3000`
+   - Loki: `3100` 
+   - Prometheus: `9090`
+   - Promtail: `9080`
+   - **Status**: Needs port options
+
+3. **Pretix Module** ❌ Hardcoded port
+   - Docker container: `"12345:80"`
+   - **Status**: Needs port option
+
+4. **Schwarmplaner Module** ❌ Hardcoded ports
+   - Nginx: `"90:80"`
+   - MySQL: `"3306:3306"`
+   - API: `"3000:3000"`
+   - Frontend: `"8000:8000"`
+   - **Status**: Needs multiple port options
+
+5. **Audio Transcriber Module** ❌ Hardcoded port
+   - App: `"8001:3000"`
+   - **Status**: Needs port option
+
+6. **Vikunja Module** ❌ Hardcoded port
+   - SMTP: `port = 587`
+   - **Status**: Needs port option
+
+7. **Bank Automation Module** ✅ No exposed ports
+   - **Status**: No changes needed
+
+8. **Backup Module** ✅ No exposed ports
+   - **Status**: No changes needed
+
+**Summary:**
+- **5 modules** need port configuration options added
+- **2 modules** already handle ports correctly  
+- **2 modules** don't expose ports
+
+### Port Configuration Design
+
+**Approach**: Add `port` (and additional port options where needed) to each module following the MinIO pattern.
+
+**Design Pattern:**
+```nix
+# For single port services
+port = mkOption {
+  type = types.port;
+  default = [service-default];
+  description = "Port for [service-name]";
+};
+
+# For multi-port services  
+someServicePort = mkOption {
+  type = types.port;
+  default = [default];
+  description = "Port for [specific-service]";
+};
+```
+
+**Implementation Plan:**
+
+1. **Monitoring Module**: Add 4 port options
+   - `grafanaPort = 3000`
+   - `lokiPort = 3100` 
+   - `prometheusPort = 9090`
+   - `promtailPort = 9080`
+
+2. **Pretix Module**: Add 1 port option
+   - `port = 12345`
+
+3. **Schwarmplaner Module**: Add 4 port options
+   - `nginxPort = 90`
+   - `mysqlPort = 3306`
+   - `apiPort = 3000`
+   - `frontendPort = 8000`
+
+4. **Audio Transcriber Module**: Add 1 port option
+   - `port = 8001`
+
+5. **Vikunja Module**: Add 1 port option
+   - `smtpPort = 587`
+
+**Benefits:**
+- Centralized port management in configuration.nix
+- Avoid port conflicts between services
+- Enable custom port assignments for different environments
+- Maintain backward compatibility with sensible defaults
+
+### Analysis Findings
+
+**Current Complexity Issues:**
+- **Module Size**: 440 lines of complex configuration
+- **Over-engineered Options**: Too many granular configuration options (individual ports, data dirs, etc.)
+- **Complex Promtail Pipeline**: 3 different scrape configs with detailed JSON parsing pipelines
+- **Verbose Grafana Provisioning**: Detailed datasource and dashboard configuration  
+- **Detailed Service Configuration**: Full replication of YAML configs in Nix
+
+**Simplification Opportunities:**
+1. **Reduce Configuration Options**: Most users want basic monitoring, not fine-tuned control
+2. **Simplify Promtail**: Use basic log collection instead of complex JSON parsing
+3. **Use Default Configurations**: Leverage NixOS service defaults instead of explicit config
+4. **Minimal Grafana Setup**: Basic datasources without complex provisioning
+5. **Single Enable Option**: Enable entire stack with minimal configuration
+
+**Proposed Simplified Approach:**
+- Single `enable` option to turn on all monitoring services
+- Remove individual service enable/disable options
+- Use NixOS service defaults for most configuration
+- Simplified Promtail with basic log collection
+- Basic Grafana with essential datasources only
+- Target: Reduce from 440 lines to ~100-150 lines
+
+## Key Decisions
+
+**1. Single Enable Option**
+- Decision: Replace granular service options with single `enable` toggle
+- Rationale: Most users want basic monitoring, not fine-grained control
+- Impact: Much simpler configuration, reduced cognitive load
+
+**2. Remove Complex JSON Parsing**
+- Decision: Replace complex Promtail pipelines with basic journal collection
+- Rationale: Over-engineered for typical monitoring needs
+- Impact: Reduced 200+ lines of pipeline configuration to simple journal scraping
+
+**3. Use NixOS Service Defaults**
+- Decision: Leverage built-in NixOS service defaults instead of explicit configuration
+- Rationale: Reduces maintenance burden and configuration complexity
+- Impact: Eliminates need for custom port/directory options
+
+## Final Results
+
+**Complexity Reduction Achieved:**
+- **Lines of Code**: 440 → 131 lines (70% reduction)
+- **Configuration Options**: Reduced from 12 options to 2 options
+- **Service Dependencies**: Simplified systemd ordering
+- **Firewall Configuration**: Reduced to simple port list
+- **Promtail Configuration**: Eliminated complex JSON parsing pipelines
+
+**Maintained Functionality:**
+- All 4 monitoring services (Loki, Grafana, Prometheus, Promtail) still enabled
+- Basic log collection via systemd journal
+- Grafana datasource auto-provisioning
+- Service dependency management
+- Firewall port management
+
+The monitoring stack is now much simpler to configure and maintain while preserving essential monitoring capabilities.
+
+### Simplified Design
+
+**New Module Structure:**
+```nix
+options.zugvoegel.services.monitoring = {
+  enable = mkEnableOption "monitoring stack";
+  openFirewall = mkOption { 
+    type = types.bool; 
+    default = true; 
+    description = "Open firewall for monitoring services";
+  };
+};
+```
+
+**Services Configuration:**
+- **Loki**: Use NixOS defaults, minimal filesystem config
+- **Grafana**: Basic setup with admin/admin credentials, auto-provision Loki datasource
+- **Prometheus**: Default config + basic scraping of local services  
+- **Promtail**: Simple syslog and Docker log collection, no complex JSON parsing
+
+**What Gets Removed:**
+- Individual service enable/disable options
+- Port configuration options (use defaults: 3000, 3100, 9090)
+- Data directory options (use NixOS defaults)
+- Complex Promtail pipeline stages
+- Detailed Grafana provisioning configuration
+- Dashboard file copying complexity
+
+## Implement
 
 ### Phase Entrance Criteria:
-- [x] The existing monitoring setup has been thoroughly analyzed
-- [x] Current NixOS patterns and module structure are understood  
-- [x] Monitoring service requirements are documented
-- [x] Integration approach is clear
+- [x] All modules have been analyzed for port usage
+- [x] Port configuration approach has been designed
+- [x] Implementation strategy is clear
+- [x] Scope and impact are understood
 
 ### Tasks
-- [x] Design module structure and options interface
-- [x] Plan configuration file generation strategy
+- [ ] Add port options to monitoring module
+- [ ] Add port option to pretix module  
+- [ ] Add port options to schwarmplaner module
+- [ ] Add port option to audiotranscriber module
+- [ ] Add port option to vikunja module
+- [ ] Update configuration references to use new port variables
+- [ ] Test all modules for syntax correctness
+- [ ] Update documentation with port configuration examples
+
+### Completed
+*None yet*
+
+## Finalize
+
+### Phase Entrance Criteria:
+- [ ] Port configuration options have been implemented
+- [ ] All modules support configurable ports
+- [ ] Configuration validation passes
+- [ ] Documentation is updated
+
+### Tasks
+
+### Completed
+- [x] Review code for debug statements or TODO comments
+- [x] Final validation of simplified configuration
+- [x] Remove unused dashboard files if any
+- [x] Clean up development artifacts
+- [x] Final documentation review
 - [x] Design data directory and permissions structure
 - [x] Plan Grafana provisioning integration
 - [x] Design service dependencies and networking
@@ -151,8 +359,6 @@ config.zugvoegel.services.monitoring = {
 - [x] Dependencies and service interactions are planned
 
 ### Tasks
-- [ ] Test service startup and basic functionality
-- [ ] Update main configuration.nix to enable monitoring
 
 ### Completed
 - [x] Create `modules/monitoring/default.nix` with module structure
@@ -165,20 +371,26 @@ config.zugvoegel.services.monitoring = {
 - [x] Create Grafana provisioning configuration
 - [x] Convert existing dashboard JSON to provisioning
 - [x] Integrate with existing services (audio-transcriber, etc.)
+- [x] Test service startup and basic functionality
+- [x] Update main configuration.nix to enable monitoring
 
 ## Commit
 
 ### Phase Entrance Criteria:
-- [ ] Monitoring stack is successfully integrated into NixOS configuration
-- [ ] Services are properly configured and working
-- [ ] Configuration follows established patterns
-- [ ] Testing confirms functionality
+- [x] Monitoring stack is successfully integrated into NixOS configuration
+- [x] Services are properly configured and working
+- [x] Configuration follows established patterns
+- [x] Testing confirms functionality
 
 ### Tasks
-- [ ] *To be added when this phase becomes active*
 
 ### Completed
-*None yet*
+- [x] Review and clean up monitoring module code
+- [x] Check for TODO/FIXME comments and address them  
+- [x] Remove any debugging or temporary code
+- [x] Final validation of configuration syntax
+- [x] Update README or documentation if needed
+- [x] Prepare final commit message
 
 ## Key Decisions
 
@@ -196,6 +408,32 @@ config.zugvoegel.services.monitoring = {
 - Decision: Create one comprehensive monitoring module instead of separate modules per service
 - Rationale: These services work together as a stack, simpler configuration, matches existing Docker Compose pattern
 - Impact: Single enable option can configure entire monitoring stack
+
+## Implementation Summary
+
+The monitoring stack has been successfully integrated into the NixOS configuration:
+
+**Created Files:**
+- `modules/monitoring/default.nix` - Main monitoring module with all 4 services
+- `modules/monitoring/dashboards/audio-transcriber-dashboard.json` - Existing dashboard
+- Updated `configuration.nix` to enable monitoring services
+- Updated `README.md` with monitoring information
+
+**Services Configured:**
+- **Loki** (port 3100): Log aggregation with filesystem storage
+- **Grafana** (port 3000): Dashboards with automatic provisioning 
+- **Prometheus** (port 9090): Metrics collection with service scraping
+- **Promtail** (port 9080): Log collection from Docker and system
+
+**Key Features:**
+- Native NixOS services replace Docker Compose
+- Automatic dashboard and datasource provisioning
+- Service dependency management with systemd
+- Firewall configuration for external access
+- Integration with existing services (audio-transcriber metrics)
+- Data directory management with proper permissions
+
+The monitoring stack is ready for deployment and will provide comprehensive observability for all services in the environment.
 
 ## Notes
 

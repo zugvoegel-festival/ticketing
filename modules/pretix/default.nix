@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 with lib;
 let
   cfg = config.zugvoegel.services.pretix;
@@ -43,6 +48,11 @@ in
       description = "Path to use for persisten pretix data";
     };
 
+    port = mkOption {
+      type = types.port;
+      default = 12345;
+      description = "Port for Pretix web service";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -50,22 +60,26 @@ in
     # Some helper scripts to help while debugging
     environment.systemPackages =
       let
-        restart-all-pretix = pkgs.writeShellScriptBin "restart-all-pretix" /* sh */
-          ''
-            systemctl stop docker-postgresql.service docker-pretix.service docker-redis.service
-            systemctl restart init-pretix-net.service
-            systemctl restart init-pretix-data.service
-            systemctl start docker-postgresql.service docker-pretix.service docker-redis.service
-          '';
+        restart-all-pretix =
+          pkgs.writeShellScriptBin "restart-all-pretix" # sh
+            ''
+              systemctl stop docker-postgresql.service docker-pretix.service docker-redis.service
+              systemctl restart init-pretix-net.service
+              systemctl restart init-pretix-data.service
+              systemctl start docker-postgresql.service docker-pretix.service docker-redis.service
+            '';
 
-        nuke-docker = pkgs.writeShellScriptBin "nuke-docker" /* sh */
-          ''
-            ${pkgs.docker}/bin/docker image prune -a
-            ${pkgs.docker}/bin/docker system prune -a
-          '';
+        nuke-docker =
+          pkgs.writeShellScriptBin "nuke-docker" # sh
+            ''
+              ${pkgs.docker}/bin/docker image prune -a
+              ${pkgs.docker}/bin/docker system prune -a
+            '';
       in
-      [ restart-all-pretix nuke-docker ];
-
+      [
+        restart-all-pretix
+        nuke-docker
+      ];
 
     sops.secrets.pretix-envfile = { };
 
@@ -91,10 +105,9 @@ in
         '';
     };
 
-    systemd.services.docker-pretix.preStart =
-      ''
-        mkdir -p ${cfg.pretixDataPath} && chown -R 15371:15371 ${cfg.pretixDataPath}
-      '';
+    systemd.services.docker-pretix.preStart = ''
+      mkdir -p ${cfg.pretixDataPath} && chown -R 15371:15371 ${cfg.pretixDataPath}
+    '';
 
     virtualisation.oci-containers = {
       backend = "docker"; # Podman is the default backend.
@@ -125,7 +138,7 @@ in
               "${cfg.pretixDataPath}:/data"
             ];
           environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
-          ports = [ "12345:80" ];
+          ports = [ "${toString cfg.port}:80" ];
           extraOptions = [ "--network=pretix-net" ];
         };
       };

@@ -32,6 +32,11 @@ in
       example = "admin@pretix.eu";
       description = "Email for SSL Certificate Renewal";
     };
+    port = mkOption {
+      type = types.int;
+      default = 8001;
+      description = "Port for the audio transcriber service";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -78,7 +83,7 @@ in
 
         audiotranscriber-app = {
           image = cfg.app-image;
-          ports = [ "8001:3000" ];
+          ports = [ "${toString cfg.port}:3000" ];
           volumes = [ "/var/lib/audiotranscriber/data:/app/data" ];
           environmentFiles = [ config.sops.secrets.audiotranscriber-envfile.path ];
           extraOptions = [
@@ -97,7 +102,7 @@ in
       virtualHosts."${cfg.host}" = {
         enableACME = true;
         forceSSL = true;
-        locations."/".proxyPass = "http://localhost:8001";
+        locations."/".proxyPass = "http://localhost:${toString cfg.port}";
         locations."/".extraConfig = ''
           client_max_body_size 1024M;
         '';

@@ -43,6 +43,30 @@ in
       example = "admin@pretix.eu";
       description = "Email for SSL Certificate Renewal";
     };
+
+    nginxPort = mkOption {
+      type = types.port;
+      default = 90;
+      description = "Port for Schwarmplaner nginx proxy";
+    };
+
+    mysqlPort = mkOption {
+      type = types.port;
+      default = 3306;
+      description = "Port for Schwarmplaner MySQL database";
+    };
+
+    apiPort = mkOption {
+      type = types.port;
+      default = 3000;
+      description = "Port for Schwarmplaner API service";
+    };
+
+    frontendPort = mkOption {
+      type = types.port;
+      default = 8000;
+      description = "Port for Schwarmplaner frontend service";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -87,12 +111,12 @@ in
             "schwarmplaner-api"
             "schwarmplaner-db"
           ];
-          ports = [ "90:80" ];
+          ports = [ "${toString cfg.nginxPort}:80" ];
           extraOptions = [ "--network=schwarm-net" ];
         };
         schwarmplaner-db = {
           image = "mysql";
-          ports = [ "3306:3306" ];
+          ports = [ "${toString cfg.mysqlPort}:3306" ];
           volumes = [
             "/var/lib/schwarmplaner/mysql/conf.d:/etc/mysql/conf.d"
             "/var/lib/schwarmplaner/mysql/data:/var/lib/mysql"
@@ -104,7 +128,7 @@ in
         schwarmplaner-api = {
           image = cfg.api-image;
           dependsOn = [ "schwarmplaner-db" ];
-          ports = [ "3000:3000" ];
+          ports = [ "${toString cfg.apiPort}:3000" ];
           environmentFiles = [ config.sops.secrets.schwarm-api-envfile.path ];
           extraOptions = [
             "--network=schwarm-net"
@@ -114,7 +138,7 @@ in
 
         schwarmplaner-frontend = {
           image = cfg.frontend-image;
-          ports = [ "8000:8000" ];
+          ports = [ "${toString cfg.frontendPort}:8000" ];
           dependsOn = [ "schwarmplaner-api" ];
           extraOptions = [
             "--network=schwarm-net"

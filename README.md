@@ -12,6 +12,7 @@ This deployment includes:
 - **MinIO**: S3-compatible object storage
 - **Bank Automation**: Automated bank transaction processing
 - **Automated Backup**: Regular backups of all services
+- **Monitoring Stack**: Simplified monitoring with Loki (logs), Grafana (dashboards), Prometheus (metrics), and Promtail (log collection) - supports both local access and custom domains with SSL
 
 After booking the `VPS 500 G10s` you will get an e-mail with the root
 credentials and a `debian-minimal` image preinstalled. 
@@ -77,6 +78,42 @@ Once deployed, the following services will be available:
 - **Vikunja (Task Management)**: https://brett.feuersalamander-nippes.de
 - **MinIO S3 API**: https://minio.zugvoegelfestival.org
 - **MinIO Console**: https://minio-console.zugvoegelfestival.org
+
+### Monitoring Services
+
+The simplified monitoring stack provides essential observability with minimal configuration:
+
+**Basic Configuration (Local Access):**
+```nix
+services.monitoring = {
+  enable = true;  # Enables all monitoring services
+};
+```
+- **Grafana Dashboard**: http://[server-ip]:3000 (admin/admin)
+- **Prometheus Metrics**: http://[server-ip]:9090
+- **Loki Logs**: http://[server-ip]:3100
+
+**Advanced Configuration (With Custom Domains):**
+```nix
+services.monitoring = {
+  enable = true;
+  grafanaHost = "grafana.example.com";
+  prometheusHost = "prometheus.example.com";
+  lokiHost = "loki.example.com";
+  acmeMail = "admin@example.com";  # For SSL certificates
+};
+```
+- **Grafana Dashboard**: https://grafana.example.com (admin/admin)
+- **Prometheus Metrics**: https://prometheus.example.com
+- **Loki Logs**: https://loki.example.com
+
+**Features:**
+- **Loki**: Log aggregation with basic filesystem storage
+- **Grafana**: Dashboard visualization with Loki and Prometheus datasources
+- **Prometheus**: Basic metrics collection from monitoring services
+- **Promtail**: System journal log collection via systemd
+- **SSL/TLS**: Automatic HTTPS certificates via Let's Encrypt (when hosts configured)
+- **Nginx Reverse Proxy**: Automatic setup for custom domains
 
 ### Flake Updates
 

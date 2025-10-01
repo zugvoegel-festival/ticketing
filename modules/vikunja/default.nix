@@ -12,6 +12,11 @@ in
       example = "todo.url.de";
       description = "Host serving service";
     };
+    smtpPort = mkOption {
+      type = types.int;
+      default = 587;
+      description = "SMTP port for email configuration";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -28,9 +33,8 @@ in
           host = "smtp.ionos.de";
           username = "no-reply@feuersalamander-nippes.de";
           fromemail = "no-reply@feuersalamander-nippes.de";
-          port = 587;
+          port = cfg.smtpPort;
           authtype = "plain";
-
         };
         service = {
           enableregistration = true;
@@ -40,8 +44,6 @@ in
         defaulsettings = {
           discoverable_by_name = true;
           week_start = 1;
-
-
         };
       };
     };
