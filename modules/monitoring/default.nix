@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 with lib;
 let
   cfg = config.zugvoegel.services.monitoring;
@@ -107,16 +112,18 @@ in
           };
         };
         schema_config = {
-          configs = [{
-            from = "2020-10-24";
-            store = "boltdb-shipper";
-            object_store = "filesystem";
-            schema = "v11";
-            index = {
-              prefix = "index_";
-              period = "24h";
-            };
-          }];
+          configs = [
+            {
+              from = "2020-10-24";
+              store = "boltdb-shipper";
+              object_store = "filesystem";
+              schema = "v11";
+              index = {
+                prefix = "index_";
+                period = "24h";
+              };
+            }
+          ];
         };
         ruler = {
           alertmanager_url = "http://localhost:9093";
@@ -143,9 +150,7 @@ in
           enable_alpha = true;
         };
       };
-      declarativePlugins = with pkgs.grafanaPlugins; [
-        grafana-polystat-panel
-      ];
+      declarativePlugins = with pkgs.grafanaPlugins; [ grafana-polystat-panel ];
       provision = mkIf cfg.grafana.provisionDashboards {
         enable = true;
         datasources.settings = {
@@ -174,18 +179,20 @@ in
         };
         dashboards.settings = {
           apiVersion = 1;
-          providers = [{
-            name = "default";
-            orgId = 1;
-            folder = "";
-            type = "file";
-            disableDeletion = false;
-            updateIntervalSeconds = 10;
-            allowUiUpdates = true;
-            options = {
-              path = "/var/lib/grafana/dashboards";
-            };
-          }];
+          providers = [
+            {
+              name = "default";
+              orgId = 1;
+              folder = "";
+              type = "file";
+              disableDeletion = false;
+              updateIntervalSeconds = 10;
+              allowUiUpdates = true;
+              options = {
+                path = "/var/lib/grafana/dashboards";
+              };
+            }
+          ];
         };
       };
     };
@@ -202,29 +209,21 @@ in
       scrapeConfigs = [
         {
           job_name = "prometheus";
-          static_configs = [{
-            targets = [ "127.0.0.1:${toString cfg.prometheus.port}" ];
-          }];
+          static_configs = [ { targets = [ "127.0.0.1:${toString cfg.prometheus.port}" ]; } ];
         }
         {
           job_name = "audio-transcriber";
-          static_configs = [{
-            targets = [ "audio-transcriber:3000" ];
-          }];
+          static_configs = [ { targets = [ "audio-transcriber:3000" ]; } ];
           metrics_path = "/api/metrics";
           scrape_interval = "30s";
         }
         {
           job_name = "loki";
-          static_configs = [{
-            targets = [ "127.0.0.1:${toString cfg.loki.port}" ];
-          }];
+          static_configs = [ { targets = [ "127.0.0.1:${toString cfg.loki.port}" ]; } ];
         }
         {
           job_name = "grafana";
-          static_configs = [{
-            targets = [ "127.0.0.1:${toString cfg.grafana.port}" ];
-          }];
+          static_configs = [ { targets = [ "127.0.0.1:${toString cfg.grafana.port}" ]; } ];
         }
       ];
     };
@@ -239,33 +238,35 @@ in
         positions = {
           filename = "/tmp/positions.yaml";
         };
-        clients = [{
-          url = "http://127.0.0.1:${toString cfg.loki.port}/loki/api/v1/push";
-        }];
+        clients = [ { url = "http://127.0.0.1:${toString cfg.loki.port}/loki/api/v1/push"; } ];
         scrape_configs = [
           # Docker container logs
           {
             job_name = "docker";
-            docker_sd_configs = [{
-              host = "unix:///var/run/docker.sock";
-              refresh_interval = "5s";
-              filters = [{
-                name = "label";
-                values = ["logging=promtail"];
-              }];
-            }];
+            docker_sd_configs = [
+              {
+                host = "unix:///var/run/docker.sock";
+                refresh_interval = "5s";
+                filters = [
+                  {
+                    name = "label";
+                    values = [ "logging=promtail" ];
+                  }
+                ];
+              }
+            ];
             relabel_configs = [
               {
-                source_labels = ["__meta_docker_container_name"];
+                source_labels = [ "__meta_docker_container_name" ];
                 regex = "/(.*)";
                 target_label = "container_name";
               }
               {
-                source_labels = ["__meta_docker_container_log_stream"];
+                source_labels = [ "__meta_docker_container_log_stream" ];
                 target_label = "logstream";
               }
               {
-                source_labels = ["__meta_docker_container_label_com_docker_compose_service"];
+                source_labels = [ "__meta_docker_container_label_com_docker_compose_service" ];
                 target_label = "service_name";
               }
             ];
@@ -314,13 +315,15 @@ in
           # Audio-transcriber application logs
           {
             job_name = "audio-transcriber";
-            static_configs = [{
-              targets = ["localhost"];
-              labels = {
-                job = "audio-transcriber";
-                __path__ = "/var/log/audio-transcriber/*.log";
-              };
-            }];
+            static_configs = [
+              {
+                targets = [ "localhost" ];
+                labels = {
+                  job = "audio-transcriber";
+                  __path__ = "/var/log/audio-transcriber/*.log";
+                };
+              }
+            ];
             pipeline_stages = [
               {
                 json = {
@@ -368,13 +371,15 @@ in
           # System logs
           {
             job_name = "system";
-            static_configs = [{
-              targets = ["localhost"];
-              labels = {
-                job = "system";
-                __path__ = "/var/log/syslog";
-              };
-            }];
+            static_configs = [
+              {
+                targets = [ "localhost" ];
+                labels = {
+                  job = "system";
+                  __path__ = "/var/log/syslog";
+                };
+              }
+            ];
             pipeline_stages = [
               {
                 regex = {
@@ -414,7 +419,8 @@ in
 
     # Firewall configuration
     networking.firewall = mkIf cfg.openFirewall {
-      allowedTCPPorts = []
+      allowedTCPPorts =
+        [ ]
         ++ (optional cfg.grafana.enable cfg.grafana.port)
         ++ (optional cfg.loki.enable cfg.loki.port)
         ++ (optional cfg.prometheus.enable cfg.prometheus.port);
@@ -426,7 +432,8 @@ in
       (mkIf cfg.loki.enable "d ${cfg.loki.dataDir}/chunks 0750 loki loki - -")
       (mkIf cfg.loki.enable "d ${cfg.loki.dataDir}/rules 0750 loki loki - -")
       (mkIf cfg.grafana.enable "d /var/lib/grafana/dashboards 0755 grafana grafana - -")
-      (mkIf cfg.grafana.enable "C /var/lib/grafana/dashboards/audio-transcriber-dashboard.json 0644 grafana grafana - ${./dashboards/audio-transcriber-dashboard.json}")
+      (mkIf cfg.grafana.enable "C /var/lib/grafana/dashboards/audio-transcriber-dashboard.json 0644 grafana grafana - ${./dashboards/audio-transcriber-dashboard.json}"
+      )
     ];
   };
 }
