@@ -1,7 +1,6 @@
 {
-    "dashboard": {
-        "id": null,
-        "title": "Docker Services Health",
+    "id": null,
+    "title": "Docker Services Health",
         "tags": [
             "docker",
             "services",
@@ -217,8 +216,7 @@
             "from": "now-1h",
             "to": "now"
         },
-        "timepicker": {},
-        "version": 1,
-        "weekStart": ""
-    }
+    "timepicker": {},
+    "version": 1,
+    "weekStart": ""
 }

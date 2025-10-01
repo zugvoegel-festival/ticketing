@@ -1,7 +1,6 @@
 {
-    "dashboard": {
-        "id": null,
-        "title": "System Resources",
+    "id": null,
+    "title": "System Resources",
         "tags": [
             "system",
             "resources",
@@ -354,8 +353,7 @@
             "from": "now-1h",
             "to": "now"
         },
-        "timepicker": {},
-        "version": 1,
-        "weekStart": ""
-    }
+    "timepicker": {},
+    "version": 1,
+    "weekStart": ""
 }

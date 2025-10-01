@@ -1,7 +1,6 @@
 {
-    "dashboard": {
-        "id": null,
-        "title": "Server Health Overview",
+    "id": null,
+    "title": "Server Health Overview",
         "tags": [
             "server",
             "health",
@@ -329,5 +328,4 @@
         "timepicker": {},
         "version": 1,
         "weekStart": ""
-    }
 }
