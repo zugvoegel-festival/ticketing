@@ -15,10 +15,14 @@
                 "type": "timeseries",
                 "targets": [
                     {
-                        "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-                        "refId": "A",
-                        "legendFormat": "CPU Usage %"
+                    "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+                    "refId": "A",
+                    "legendFormat": "CPU Usage %",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
                     }
+                }
                 ],
                 "fieldConfig": {
                     "defaults": {
@@ -90,12 +94,20 @@
                     {
                         "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
                         "refId": "A",
-                        "legendFormat": "Memory Usage %"
+                        "legendFormat": "Memory Usage %",
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "prometheus"
+                        }
                     },
                     {
                         "expr": "(node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes) / node_memory_SwapTotal_bytes * 100",
                         "refId": "B",
-                        "legendFormat": "Swap Usage %"
+                        "legendFormat": "Swap Usage %",
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "prometheus"
+                        }
                     }
                 ],
                 "fieldConfig": {
@@ -168,12 +180,20 @@
                     {
                         "expr": "rate(node_disk_read_bytes_total[5m])",
                         "refId": "A",
-                        "legendFormat": "Read - {{device}}"
+                        "legendFormat": "Read - {{device}}",
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "prometheus"
+                        }
                     },
                     {
                         "expr": "rate(node_disk_written_bytes_total[5m])",
                         "refId": "B",
-                        "legendFormat": "Write - {{device}}"
+                        "legendFormat": "Write - {{device}}",
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "prometheus"
+                        }
                     }
                 ],
                 "fieldConfig": {
@@ -236,7 +256,11 @@
                     {
                         "expr": "(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100",
                         "refId": "A",
-                        "legendFormat": "{{mountpoint}}"
+                        "legendFormat": "{{mountpoint}}",
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "prometheus"
+                        }
                     }
                 ],
                 "fieldConfig": {
@@ -285,17 +309,29 @@
                     {
                         "expr": "node_load1",
                         "refId": "A",
-                        "legendFormat": "1 min"
+                        "legendFormat": "1 min",
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "prometheus"
+                        }
                     },
                     {
                         "expr": "node_load5",
                         "refId": "B",
-                        "legendFormat": "5 min"
+                        "legendFormat": "5 min",
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "prometheus"
+                        }
                     },
                     {
                         "expr": "node_load15",
                         "refId": "C",
-                        "legendFormat": "15 min"
+                        "legendFormat": "15 min",
+                        "datasource": {
+                            "type": "prometheus",
+                            "uid": "prometheus"
+                        }
                     }
                 ],
                 "fieldConfig": {

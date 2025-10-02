@@ -24,10 +24,10 @@
       host = "schwarmplaner.zugvoegelfestival.org";
       apiHost = "api.zugvoegelfestival.org";
       acmeMail = "webmaster@zugvoegelfestival.org";
-      nginxPort = 90;
-      mysqlPort = 3306;
-      apiPort = 3000;
-      frontendPort = 8000;
+      nginxPort = 3301;
+      mysqlPort = 3302;
+      apiPort = 3302;
+      frontendPort = 3303;
     };
 
     services.audiotranscriber = {
@@ -61,20 +61,25 @@
 
     services.monitoring = {
       enable = true;
-      grafanaHost = "grafana.zugvoegelfestival.org";
-      prometheusHost = "prometheus.zugvoegelfestival.org";
-      lokiHost = "loki.zugvoegelfestival.org";
+      grafanaHost = "grafana.loco.vision";
+      prometheusHost = "prometheus.loco.vision";
+      lokiHost = "loki.loco.vision";
       acmeMail = "webmaster@zugvoegelfestival.org";
-      grafanaPort = 3000;
-      lokiPort = 3100;
-      prometheusPort = 9090;
-      promtailPort = 9080;
+      grafanaPort = 4000;
+      lokiPort = 4001;
+      prometheusPort = 4002;
+      promtailPort = 4003;
+
+      # Authentication configuration
+      grafanaAuth = {
+        adminUser = "admin";
+        adminEmail = "webmaster@zugvoegelfestival.org";
+        disableSignup = true;
+      };
     };
   };
 
-  sops.defaultSopsFile = ./secrets/secrets.yaml;
-
-  # "Install" git
+  sops.defaultSopsFile = ./secrets/secrets.yaml; # "Install" git
   environment.systemPackages = [ pkgs.git ];
 
   # Time zone and internationalisation
