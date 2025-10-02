@@ -50,12 +50,6 @@ in
     sops.secrets.backup-envfile = { };
     sops.secrets.backup-passwordfile = { };
 
-    systemd.services.restic-backups-zv-data.preStart =
-      ''
-        mkdir -p "${cfg.postgresDumpPath}"
-        mkdir -p "${cfg.mysqlDumpPath}"
-      '';
-
     services.restic.backups =
       let
         # host = config.networking.hostName;
@@ -72,6 +66,8 @@ in
           environmentFile = config.sops.secrets.backup-envfile.path;
           passwordFile = config.sops.secrets.backup-passwordfile.path;
           backupPrepareCommand = ''
+            mkdir -p "${cfg.postgresDumpPath}"
+            mkdir -p "${cfg.mysqlDumpPath}"
             ${config.virtualisation.docker.package}/bin/docker exec postgresql pg_dumpall -U postgres -h postgresql > ${cfg.postgresDumpPath}/dump_"$(date +"%Y-%m-%d").sql"
             ${config.virtualisation.docker.package}/bin/docker exec schwarmplaner-db mysqldump -u root -pHurraWirFliegen24 schwarmDatabase > ${cfg.mysqlDumpPath}/dump_"$(date +"%Y-%m-%d").sql"
           '';
