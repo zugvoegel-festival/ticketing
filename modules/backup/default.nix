@@ -1,6 +1,12 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 with lib;
-let cfg = config.zugvoegel.services.backup;
+let
+  cfg = config.zugvoegel.services.backup;
 in
 {
   options.zugvoegel.services.backup = {
@@ -42,7 +48,6 @@ in
     };
   };
 
-
   config = mkIf cfg.enable {
 
     environment.systemPackages = with pkgs; [ restic ];
@@ -55,8 +60,7 @@ in
         # host = config.networking.hostName;
         restic-ignore-file = pkgs.writeTextFile {
           name = "restic-ignore-file";
-          text = builtins.concatStringsSep "\n"
-            cfg.backup-paths-exclude;
+          text = builtins.concatStringsSep "\n" cfg.backup-paths-exclude;
         };
       in
       {
@@ -75,12 +79,11 @@ in
             rm "${cfg.postgresDumpPath}/dump_$(date +"%Y-%m-%d").sql"
             rm "${cfg.mysqlDumpPath}/dump_$(date +"%Y-%m-%d").sql"
           '';
-          timerConfig =
-            {
-              OnCalendar = "00:05";
-              Persistent = true;
-              RandomizedDelaySec = "5h";
-            };
+          timerConfig = {
+            OnCalendar = "00:05";
+            Persistent = true;
+            RandomizedDelaySec = "5h";
+          };
           extraBackupArgs = [
             "--exclude-file=${restic-ignore-file}"
             "--one-file-system"
