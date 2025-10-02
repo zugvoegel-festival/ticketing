@@ -12,39 +12,96 @@ in
   options.zugvoegel.services.backup = {
     enable = mkEnableOption "restic backups";
 
-    postgresDumpPath = mkOption {
+    s3BaseUrl = mkOption {
       type = types.str;
-      default = "/var/lib/pretix-postgresql/dumps";
-      example = "/var/lib/backups";
-      description = "Path to use to dump sql for backups";
+      default = "s3:https://s3.us-west-004.backblazeb2.com";
+      description = "Base S3 URL for backup repositories";
     };
 
-    mysqlDumpPath = mkOption {
+    bucketPrefix = mkOption {
       type = types.str;
-      default = "/var/lib/schwarmplaner/dumps";
-      example = "/var/lib/backups";
-      description = "Path to use to dump sql for backups";
+      default = "zugvoegel";
+      description = "Prefix for S3 bucket names";
     };
 
-    backupDirs = mkOption {
-      type = types.listOf types.str;
-      default = [ config.zugvoegel.services.backup.postgresDumpPath ];
-      example = [ "/home/zugvoegel/Notes" ];
-      description = "Paths to backup to offsite storage";
+    schedule = mkOption {
+      type = types.str;
+      default = "03:00";
+      description = "Default backup schedule (systemd calendar format)";
     };
 
-    backup-paths-exclude = mkOption {
-      type = types.listOf types.str;
-      default = [ ];
-      example = [ "/home/zugvoegel/cache" ];
-      description = "Paths to exclude from backup";
-    };
+    services = mkOption {
+      type = types.attrsOf (types.submodule {
+        options = {
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Enable backup for this service";
+          };
 
-    s3Repository = mkOption {
-      type = types.listOf types.str;
-      default = [ "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp" ];
-      example = [ "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp" ];
-      description = "s3 repository";
+          type = mkOption {
+            type = types.enum [ "database" "files" ];
+            description = "Type of backup: database dump or file backup";
+          };
+
+          schedule = mkOption {
+            type = types.str;
+            default = cfg.schedule;
+            description = "Backup schedule for this service (systemd calendar format)";
+          };
+
+          paths = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = "Paths to backup (for file backups)";
+          };
+
+          excludePaths = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = "Paths to exclude from backup";
+          };
+
+          # Database specific options
+          dbType = mkOption {
+            type = types.nullOr (types.enum [ "postgresql" "mysql" ]);
+            default = null;
+            description = "Database type for database backups";
+          };
+
+          containerName = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            description = "Docker container name for database backups";
+          };
+
+          dbName = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            description = "Database name (for MySQL)";
+          };
+
+          dbUser = mkOption {
+            type = types.str;
+            default = if (cfg.services ? dbType && cfg.services.dbType == "postgresql") then "postgres" else "root";
+            description = "Database user";
+          };
+
+          dbPassword = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            description = "Database password (for MySQL)";
+          };
+
+          dumpPath = mkOption {
+            type = types.str;
+            default = "/var/lib/backups/${name}";
+            description = "Path where database dumps are stored";
+          };
+        };
+      });
+      default = { };
+      description = "Services to backup";
     };
   };
 
@@ -55,41 +112,77 @@ in
     sops.secrets.backup-envfile = { };
     sops.secrets.backup-passwordfile = { };
 
-    services.restic.backups =
+    services.restic.backups = 
       let
-        # host = config.networking.hostName;
-        restic-ignore-file = pkgs.writeTextFile {
-          name = "restic-ignore-file";
-          text = builtins.concatStringsSep "\n" cfg.backup-paths-exclude;
-        };
-      in
-      {
-        zv-data = {
-          paths = cfg.backupDirs;
-          repository = "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp";
-          environmentFile = config.sops.secrets.backup-envfile.path;
-          passwordFile = config.sops.secrets.backup-passwordfile.path;
-          backupPrepareCommand = ''
-            mkdir -p "${cfg.postgresDumpPath}"
-            mkdir -p "${cfg.mysqlDumpPath}"
-            ${config.virtualisation.docker.package}/bin/docker exec postgresql pg_dumpall -U postgres -h postgresql > ${cfg.postgresDumpPath}/dump_"$(date +"%Y-%m-%d").sql"
-            ${config.virtualisation.docker.package}/bin/docker exec schwarmplaner-db mysqldump -u root -pHurraWirFliegen24 schwarmDatabase > ${cfg.mysqlDumpPath}/dump_"$(date +"%Y-%m-%d").sql"
-          '';
-          backupCleanupCommand = ''
-            rm "${cfg.postgresDumpPath}/dump_$(date +"%Y-%m-%d").sql"
-            rm "${cfg.mysqlDumpPath}/dump_$(date +"%Y-%m-%d").sql"
-          '';
-          timerConfig = {
-            OnCalendar = "00:05";
-            Persistent = true;
-            RandomizedDelaySec = "5h";
+        # Create a backup configuration for each enabled service
+        createBackup = serviceName: serviceConfig: 
+          let
+            bucketName = "${cfg.bucketPrefix}-${serviceName}";
+            repository = "${cfg.s3BaseUrl}/${bucketName}";
+            
+            # Create exclude file if paths are specified
+            excludeFile = if serviceConfig.excludePaths != [] then
+              pkgs.writeTextFile {
+                name = "${serviceName}-exclude-file";
+                text = builtins.concatStringsSep "\n" serviceConfig.excludePaths;
+              }
+            else null;
+
+            # Database dump commands
+            dbCommands = if serviceConfig.type == "database" then
+              let
+                dumpDir = serviceConfig.dumpPath;
+                timestamp = "$(date +\"%Y-%m-%d_%H-%M-%S\")";
+              in
+              if serviceConfig.dbType == "postgresql" then ''
+                mkdir -p "${dumpDir}"
+                ${config.virtualisation.docker.package}/bin/docker exec ${serviceConfig.containerName} pg_dumpall -U ${serviceConfig.dbUser} > ${dumpDir}/dump_${timestamp}.sql
+              ''
+              else if serviceConfig.dbType == "mysql" then ''
+                mkdir -p "${dumpDir}"
+                ${config.virtualisation.docker.package}/bin/docker exec ${serviceConfig.containerName} mysqldump -u ${serviceConfig.dbUser} ${if serviceConfig.dbPassword != null then "-p${serviceConfig.dbPassword}" else ""} ${serviceConfig.dbName} > ${dumpDir}/dump_${timestamp}.sql
+              ''
+              else ""
+            else "";
+
+            # Cleanup commands for database dumps
+            cleanupCommands = if serviceConfig.type == "database" then ''
+              # Keep only the 3 most recent dumps
+              cd ${serviceConfig.dumpPath} && ls -t dump_*.sql | tail -n +4 | xargs -r rm
+            '' else "";
+
+            # Paths to backup
+            backupPaths = if serviceConfig.type == "database" 
+              then [ serviceConfig.dumpPath ]
+              else serviceConfig.paths;
+
+          in
+          nameValuePair serviceName {
+            inherit repository;
+            paths = backupPaths;
+            environmentFile = config.sops.secrets.backup-envfile.path;
+            passwordFile = config.sops.secrets.backup-passwordfile.path;
+            
+            backupPrepareCommand = dbCommands;
+            backupCleanupCommand = cleanupCommands;
+            
+            timerConfig = {
+              OnCalendar = serviceConfig.schedule;
+              Persistent = true;
+              RandomizedDelaySec = "1h";
+            };
+            
+            extraBackupArgs = [
+              "--tag" serviceName
+              "--one-file-system"
+              "-v"
+            ] ++ (if excludeFile != null then [ "--exclude-file=${excludeFile}" ] else []);
           };
-          extraBackupArgs = [
-            "--exclude-file=${restic-ignore-file}"
-            "--one-file-system"
-            "-vv"
-          ];
-        };
-      };
+
+        # Filter enabled services and create backup configs
+        enabledServices = lib.filterAttrs (_: serviceConfig: serviceConfig.enable) cfg.services;
+        
+      in
+      builtins.listToAttrs (lib.mapAttrsToList createBackup enabledServices);
   };
 }

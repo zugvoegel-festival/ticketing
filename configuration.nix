@@ -50,13 +50,72 @@
 
     services.backup = {
       enable = true;
-      postgresDumpPath = "/var/lib/pretix-postgresql/dumps";
-      backupDirs = [
-        "/var/lib/pretix-data/data"
-        "/var/lib/pretix-postgresql/dumps"
-        "/var/lib/audiotranscriber/data"
-        "/var/lib/minio/data"
-      ]; # didn't know how to ref pretixDataPath
+      bucketPrefix = "zv-backups";
+      schedule = "03:00"; # Default backup time
+      
+      services = {
+        # Pretix PostgreSQL database backup
+        pretix-db = {
+          enable = true;
+          type = "database";
+          dbType = "postgresql";
+          containerName = "postgresql";
+          dbUser = "postgres";
+          dumpPath = "/var/lib/backups/pretix-db";
+          schedule = "02:30"; # Earlier than files to ensure DB consistency
+        };
+
+        # Pretix data files backup
+        pretix-data = {
+          enable = true;
+          type = "files";
+          paths = [ "/var/lib/pretix-data/data" ];
+          excludePaths = [
+            "*/cache/*"
+            "*/tmp/*"
+            "*.log"
+          ];
+          schedule = "03:00";
+        };
+
+        # Schwarmplaner MySQL database backup
+        schwarmplaner-db = {
+          enable = true;
+          type = "database";
+          dbType = "mysql";
+          containerName = "schwarmplaner-db";
+          dbUser = "root";
+          dbPassword = "HurraWirFliegen24";
+          dbName = "schwarmDatabase";
+          dumpPath = "/var/lib/backups/schwarmplaner-db";
+          schedule = "02:45";
+        };
+
+        # Audio Transcriber data backup
+        audiotranscriber = {
+          enable = true;
+          type = "files";
+          paths = [ "/var/lib/audiotranscriber/data" ];
+          excludePaths = [
+            "*/temp/*"
+            "*/processing/*"
+            "*.tmp"
+          ];
+          schedule = "03:15";
+        };
+
+        # MinIO data backup
+        minio = {
+          enable = true;
+          type = "files";
+          paths = [ "/var/lib/minio/data" ];
+          excludePaths = [
+            "*/.minio.sys/tmp/*"
+            "*/multipart/*"
+          ];
+          schedule = "03:30";
+        };
+      };
     };
 
     services.monitoring = {
