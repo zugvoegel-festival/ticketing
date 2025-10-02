@@ -109,22 +109,24 @@ show_service_status() {
     echo "=== $service ==="
     
     if systemctl is-active --quiet "$service_name" 2>/dev/null; then
-        success "Service is running"
-    elif systemctl is-enabled --quiet "$service_name" 2>/dev/null; then
-        echo "Service is enabled but not running"
+        success "Service is currently running"
+    elif systemctl list-unit-files "$service_name" 2>/dev/null | grep -q "$service_name"; then
+        echo "Service is available"
+        
         # Check last run status
-        if systemctl status "$service_name" --no-pager -l | grep -q "Active: inactive (dead)"; then
-            local last_run=$(systemctl show "$service_name" -p ExecMainStartTimestamp --value)
-            if [[ -n "$last_run" && "$last_run" != "n/a" ]]; then
-                echo "Last run: $last_run"
-            fi
+        local last_run=$(systemctl show "$service_name" -p ExecMainStartTimestamp --value)
+        if [[ -n "$last_run" && "$last_run" != "n/a" ]]; then
+            echo "Last run: $last_run"
             
             # Check if it succeeded
-            if systemctl status "$service_name" --no-pager | grep -q "Main process exited, code=exited, status=0/SUCCESS"; then
+            local status_output=$(SYSTEMD_COLORS=false systemctl status "$service_name" --no-pager)
+            if echo "$status_output" | grep -q "Main PID.*code=exited, status=0/SUCCESS"; then
                 success "Last backup completed successfully"
             else
                 warn "Last backup may have failed - check logs with: journalctl -u $service_name"
             fi
+        else
+            echo "No previous runs found"
         fi
     else
         warn "Service not found or not enabled"
@@ -161,7 +163,8 @@ run_backup() {
         done
         echo ""
         
-        if systemctl status "$service_name" --no-pager | grep -q "Main process exited, code=exited, status=0/SUCCESS"; then
+        local status_output=$(SYSTEMD_COLORS=false systemctl status "$service_name" --no-pager)
+        if echo "$status_output" | grep -q "Main PID.*code=exited, status=0/SUCCESS"; then
             success "Backup completed successfully for $service"
         else
             error "Backup failed for $service"
