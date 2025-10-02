@@ -1,364 +1,366 @@
 {
     "id": null,
     "title": "Server Health Overview",
-        "tags": [
-            "server",
-            "health",
-            "monitoring"
-        ],                "targets": [
-                    {
-                        "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
-                        "refId": "A",
-                        "legendFormat": "Disk Usage %",
-                        "datasource": {
-                            "type": "prometheus",
-                            "uid": "prometheus"
-                        }
+    "tags": [
+        "server",
+        "health",
+        "monitoring"
+    ],
+    "targets": [
+        {
+            "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
+            "refId": "A",
+            "legendFormat": "Disk Usage %",
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            }
+        }
+    ],
+    "timezone": "browser",
+    "panels": [
+        {
+            "id": 1,
+            "title": "System Overview",
+            "type": "stat",
+            "targets": [
+                {
+                    "expr": "up",
+                    "refId": "A",
+                    "legendFormat": "Services Up",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
                     }
-                ],  "timezone": "browser",
-        "panels": [
-            {
-                "id": 1,
-                "title": "System Overview",
-                "type": "stat",
-                "targets": [
-                    {
-                        "expr": "up",
-                        "refId": "A",
-                        "legendFormat": "Services Up",
-                        "datasource": {
-                            "type": "prometheus",
-                            "uid": "prometheus"
-                        }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 0
+                            }
+                        ]
                     }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "color": {
-                            "mode": "palette-classic"
-                        },
-                        "custom": {
-                            "displayMode": "list",
-                            "placement": "bottom"
-                        },
-                        "mappings": [],
-                        "thresholds": {
-                            "steps": [
-                                {
-                                    "color": "green",
-                                    "value": null
-                                },
-                                {
-                                    "color": "red",
-                                    "value": 0
-                                }
-                            ]
-                        }
-                    }
-                },
-                "gridPos": {
-                    "h": 6,
-                    "w": 12,
-                    "x": 0,
-                    "y": 0
                 }
             },
-            {
-                "id": 2,
-                "title": "CPU Usage",
-                "type": "stat",
-                "targets": [
-                    {
-                        "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-                        "refId": "A",
-                        "legendFormat": "CPU Usage %",
-                        "datasource": {
-                            "type": "prometheus",
-                            "uid": "prometheus"
-                        }
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 0,
+                "y": 0
+            }
+        },
+        {
+            "id": 2,
+            "title": "CPU Usage",
+            "type": "stat",
+            "targets": [
+                {
+                    "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+                    "refId": "A",
+                    "legendFormat": "CPU Usage %",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
                     }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "color": {
-                            "mode": "thresholds"
-                        },
-                        "mappings": [],
-                        "thresholds": {
-                            "steps": [
-                                {
-                                    "color": "green",
-                                    "value": null
-                                },
-                                {
-                                    "color": "yellow",
-                                    "value": 70
-                                },
-                                {
-                                    "color": "red",
-                                    "value": 90
-                                }
-                            ]
-                        },
-                        "unit": "percent"
-                    }
-                },
-                "gridPos": {
-                    "h": 6,
-                    "w": 12,
-                    "x": 12,
-                    "y": 0
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 70
+                            },
+                            {
+                                "color": "red",
+                                "value": 90
+                            }
+                        ]
+                    },
+                    "unit": "percent"
                 }
             },
-            {
-                "id": 3,
-                "title": "Memory Usage",
-                "type": "stat",
-                "targets": [
-                    {
-                        "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
-                        "refId": "A",
-                        "legendFormat": "Memory Usage %",
-                        "datasource": {
-                            "type": "prometheus",
-                            "uid": "prometheus"
-                        }
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 12,
+                "y": 0
+            }
+        },
+        {
+            "id": 3,
+            "title": "Memory Usage",
+            "type": "stat",
+            "targets": [
+                {
+                    "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+                    "refId": "A",
+                    "legendFormat": "Memory Usage %",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
                     }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "color": {
-                            "mode": "thresholds"
-                        },
-                        "mappings": [],
-                        "thresholds": {
-                            "steps": [
-                                {
-                                    "color": "green",
-                                    "value": null
-                                },
-                                {
-                                    "color": "yellow",
-                                    "value": 80
-                                },
-                                {
-                                    "color": "red",
-                                    "value": 95
-                                }
-                            ]
-                        },
-                        "unit": "percent"
-                    }
-                },
-                "gridPos": {
-                    "h": 6,
-                    "w": 12,
-                    "x": 0,
-                    "y": 6
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 80
+                            },
+                            {
+                                "color": "red",
+                                "value": 95
+                            }
+                        ]
+                    },
+                    "unit": "percent"
                 }
             },
-            {
-                "id": 4,
-                "title": "Disk Usage",
-                "type": "stat",
-                "targets": [
-                    {
-                        "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
-                        "refId": "A",
-                        "legendFormat": "Root Disk Usage %"
-                    }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "color": {
-                            "mode": "thresholds"
-                        },
-                        "mappings": [],
-                        "thresholds": {
-                            "steps": [
-                                {
-                                    "color": "green",
-                                    "value": null
-                                },
-                                {
-                                    "color": "yellow",
-                                    "value": 80
-                                },
-                                {
-                                    "color": "red",
-                                    "value": 95
-                                }
-                            ]
-                        },
-                        "unit": "percent"
-                    }
-                },
-                "gridPos": {
-                    "h": 6,
-                    "w": 12,
-                    "x": 12,
-                    "y": 6
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 0,
+                "y": 6
+            }
+        },
+        {
+            "id": 4,
+            "title": "Disk Usage",
+            "type": "stat",
+            "targets": [
+                {
+                    "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
+                    "refId": "A",
+                    "legendFormat": "Root Disk Usage %"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 80
+                            },
+                            {
+                                "color": "red",
+                                "value": 95
+                            }
+                        ]
+                    },
+                    "unit": "percent"
                 }
             },
-            {
-                "id": 5,
-                "title": "Network I/O",
-                "type": "timeseries",
-                "targets": [
-                    {
-                        "expr": "rate(node_network_receive_bytes_total{device=\"eth0\"}[5m])",
-                        "refId": "A",
-                        "legendFormat": "Received",
-                        "datasource": {
-                            "type": "prometheus",
-                            "uid": "prometheus"
+            "gridPos": {
+                "h": 6,
+                "w": 12,
+                "x": 12,
+                "y": 6
+            }
+        },
+        {
+            "id": 5,
+            "title": "Network I/O",
+            "type": "timeseries",
+            "targets": [
+                {
+                    "expr": "rate(node_network_receive_bytes_total{device=\"eth0\"}[5m])",
+                    "refId": "A",
+                    "legendFormat": "Received",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                },
+                {
+                    "expr": "rate(node_network_transmit_bytes_total{device=\"eth0\"}[5m])",
+                    "refId": "B",
+                    "legendFormat": "Transmitted",
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    }
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "vis": false
+                        },
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
                         }
                     },
-                    {
-                        "expr": "rate(node_network_transmit_bytes_total{device=\"eth0\"}[5m])",
-                        "refId": "B",
-                        "legendFormat": "Transmitted",
-                        "datasource": {
-                            "type": "prometheus",
-                            "uid": "prometheus"
-                        }
-                    }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "color": {
-                            "mode": "palette-classic"
-                        },
-                        "custom": {
-                            "axisLabel": "",
-                            "axisPlacement": "auto",
-                            "barAlignment": 0,
-                            "drawStyle": "line",
-                            "fillOpacity": 10,
-                            "gradientMode": "none",
-                            "hideFrom": {
-                                "legend": false,
-                                "tooltip": false,
-                                "vis": false
-                            },
-                            "lineInterpolation": "linear",
-                            "lineWidth": 1,
-                            "pointSize": 5,
-                            "scaleDistribution": {
-                                "type": "linear"
-                            },
-                            "showPoints": "never",
-                            "spanNulls": false,
-                            "stacking": {
-                                "group": "A",
-                                "mode": "none"
-                            },
-                            "thresholdsStyle": {
-                                "mode": "off"
-                            }
-                        },
-                        "mappings": [],
-                        "thresholds": {
-                            "steps": [
-                                {
-                                    "color": "green",
-                                    "value": null
-                                }
-                            ]
-                        },
-                        "unit": "Bps"
-                    }
-                },
-                "gridPos": {
-                    "h": 8,
-                    "w": 24,
-                    "x": 0,
-                    "y": 12
-                }
-            },
-            {
-                "id": 6,
-                "title": "Service Status",
-                "type": "table",
-                "targets": [
-                    {
-                        "expr": "up",
-                        "refId": "A",
-                        "format": "table",
-                        "instant": true
-                    }
-                ],
-                "fieldConfig": {
-                    "defaults": {
-                        "color": {
-                            "mode": "thresholds"
-                        },
-                        "custom": {
-                            "align": "auto",
-                            "displayMode": "auto",
-                            "inspect": false
-                        },
-                        "mappings": [
+                    "mappings": [],
+                    "thresholds": {
+                        "steps": [
                             {
-                                "options": {
-                                    "0": {
-                                        "text": "DOWN"
-                                    },
-                                    "1": {
-                                        "text": "UP"
-                                    }
-                                },
-                                "type": "value"
+                                "color": "green",
+                                "value": null
                             }
-                        ],
-                        "thresholds": {
-                            "steps": [
-                                {
-                                    "color": "red",
-                                    "value": null
-                                },
-                                {
-                                    "color": "green",
-                                    "value": 1
-                                }
-                            ]
-                        }
-                    }
-                },
-                "gridPos": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 20
+                        ]
+                    },
+                    "unit": "Bps"
                 }
             },
-            {
-                "id": 7,
-                "title": "Recent System Logs",
-                "type": "logs",
-                "targets": [
-                    {
-                        "expr": "{job=\"systemd-journal\"} |~ \"(?i)(error|fail|warning)\"",
-                        "refId": "A",
-                        "datasource": {
-                            "type": "loki",
-                            "uid": "loki"
-                        }
-                    }
-                ],
-                "gridPos": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 12,
-                    "y": 20
-                }
+            "gridPos": {
+                "h": 8,
+                "w": 24,
+                "x": 0,
+                "y": 12
             }
-        ],
-        "time": {
-            "from": "now-1h",
-            "to": "now"
         },
-        "timepicker": {},
-        "version": 1,
-        "weekStart": ""
+        {
+            "id": 6,
+            "title": "Service Status",
+            "type": "table",
+            "targets": [
+                {
+                    "expr": "up",
+                    "refId": "A",
+                    "format": "table",
+                    "instant": true
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "custom": {
+                        "align": "auto",
+                        "displayMode": "auto",
+                        "inspect": false
+                    },
+                    "mappings": [
+                        {
+                            "options": {
+                                "0": {
+                                    "text": "DOWN"
+                                },
+                                "1": {
+                                    "text": "UP"
+                                }
+                            },
+                            "type": "value"
+                        }
+                    ],
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "green",
+                                "value": 1
+                            }
+                        ]
+                    }
+                }
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 20
+            }
+        },
+        {
+            "id": 7,
+            "title": "Recent System Logs",
+            "type": "logs",
+            "targets": [
+                {
+                    "expr": "{job=\"systemd-journal\"} |~ \"(?i)(error|fail|warning)\"",
+                    "refId": "A",
+                    "datasource": {
+                        "type": "loki",
+                        "uid": "loki"
+                    }
+                }
+            ],
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 20
+            }
+        }
+    ],
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "timepicker": {},
+    "version": 1,
+    "weekStart": ""
 }
