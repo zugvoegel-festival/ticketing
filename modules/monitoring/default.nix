@@ -289,16 +289,16 @@ in
     systemd.tmpfiles.rules = [ "d /var/lib/grafana/dashboards 0755 grafana grafana -" ];
 
     environment.etc = {
-      "grafana/dashboards/server-health-overview.json" = {
-        text = builtins.readFile ./dashboards/server-health-overview.json;
+      "grafana/dashboards/server-essentials.json" = {
+        text = builtins.readFile ./dashboards/server-essentials.json;
         mode = "0644";
       };
-      "grafana/dashboards/docker-services-health.json" = {
-        text = builtins.readFile ./dashboards/docker-services-health.json;
+      "grafana/dashboards/docker-health.json" = {
+        text = builtins.readFile ./dashboards/docker-health.json;
         mode = "0644";
       };
-      "grafana/dashboards/system-resources.json" = {
-        text = builtins.readFile ./dashboards/system-resources.json;
+      "grafana/dashboards/system-logs.json" = {
+        text = builtins.readFile ./dashboards/system-logs.json;
         mode = "0644";
       };
     };
@@ -369,9 +369,9 @@ in
           RemainAfterExit = true;
           ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /var/lib/grafana/dashboards";
           ExecStart = [
-            "${pkgs.coreutils}/bin/cp /etc/grafana/dashboards/server-health-overview.json /var/lib/grafana/dashboards/"
-            "${pkgs.coreutils}/bin/cp /etc/grafana/dashboards/docker-services-health.json /var/lib/grafana/dashboards/"
-            "${pkgs.coreutils}/bin/cp /etc/grafana/dashboards/system-resources.json /var/lib/grafana/dashboards/"
+            "${pkgs.coreutils}/bin/cp /etc/grafana/dashboards/server-essentials.json /var/lib/grafana/dashboards/"
+            "${pkgs.coreutils}/bin/cp /etc/grafana/dashboards/docker-health.json /var/lib/grafana/dashboards/"
+            "${pkgs.coreutils}/bin/cp /etc/grafana/dashboards/system-logs.json /var/lib/grafana/dashboards/"
           ];
           User = "grafana";
           Group = "grafana";

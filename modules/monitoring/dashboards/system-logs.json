@@ -1,0 +1,353 @@
+{
+    "annotations": {
+        "list": [
+            {
+                "builtIn": 1,
+                "datasource": {
+                    "type": "grafana",
+                    "uid": "-- Grafana --"
+                },
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations & Alerts",
+                "type": "dashboard"
+            }
+        ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": 10,
+    "links": [],
+    "panels": [
+        {
+            "datasource": {
+                "type": "loki",
+                "uid": "P8E80F9AEF21F6940"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "vis": false,
+                            "viz": false
+                        }
+                    },
+                    "mappings": []
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 0
+            },
+            "id": 1,
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "right",
+                    "showLegend": true,
+                    "values": [
+                        "value"
+                    ]
+                },
+                "pieType": "pie",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "sort": "desc",
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "pluginVersion": "12.2.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "loki",
+                        "uid": "P8E80F9AEF21F6940"
+                    },
+                    "direction": "backward",
+                    "editorMode": "code",
+                    "expr": "sum by (unit) (count_over_time({job=\"systemd-journal\", unit=~\"$service\"}[$__range]))",
+                    "legendFormat": "{{unit}}",
+                    "queryType": "range",
+                    "refId": "A"
+                }
+            ],
+            "title": "Log Volume by Service",
+            "type": "piechart"
+        },
+        {
+            "datasource": {
+                "type": "loki",
+                "uid": "P8E80F9AEF21F6940"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "line",
+                        "fillOpacity": 0,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "vis": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "auto",
+                        "showValues": false,
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": 0
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 0
+            },
+            "id": 2,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "pluginVersion": "12.2.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "loki",
+                        "uid": "P8E80F9AEF21F6940"
+                    },
+                    "expr": "sum by (unit) (rate({job=\"systemd-journal\", unit=~\"$service\"}[$__auto]))",
+                    "legendFormat": "{{unit}}",
+                    "refId": "A"
+                }
+            ],
+            "title": "Log Rate by Service",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "loki",
+                "uid": "P8E80F9AEF21F6940"
+            },
+            "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 16,
+                "w": 24,
+                "x": 0,
+                "y": 8
+            },
+            "id": 3,
+            "options": {
+                "dedupStrategy": "none",
+                "enableInfiniteScrolling": false,
+                "enableLogDetails": true,
+                "prettifyLogMessage": true,
+                "showCommonLabels": true,
+                "showLabels": true,
+                "showTime": true,
+                "sortOrder": "Descending",
+                "wrapLogMessage": true
+            },
+            "pluginVersion": "12.2.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "loki",
+                        "uid": "P8E80F9AEF21F6940"
+                    },
+                    "direction": "backward",
+                    "editorMode": "code",
+                    "expr": "{job=\"systemd-journal\", unit=~\"$service\"} |~ \"(?i)$search_term\"",
+                    "queryType": "range",
+                    "refId": "A"
+                }
+            ],
+            "title": "System Logs",
+            "type": "logs"
+        }
+    ],
+    "preload": false,
+    "refresh": "30s",
+    "schemaVersion": 42,
+    "tags": [
+        "logs",
+        "systemd",
+        "journalctl"
+    ],
+    "templating": {
+        "list": [
+            {
+                "current": {
+                    "text": [
+                        "All"
+                    ],
+                    "value": [
+                        "$__all"
+                    ]
+                },
+                "datasource": {
+                    "type": "loki",
+                    "uid": "P8E80F9AEF21F6940"
+                },
+                "definition": "label_values(unit)",
+                "includeAll": true,
+                "label": "Service",
+                "multi": true,
+                "name": "service",
+                "options": [],
+                "query": "label_values(unit)",
+                "refresh": 1,
+                "regex": "^(?!session-).*\\.service$",
+                "sort": 1,
+                "type": "query"
+            },
+            {
+                "current": {
+                    "text": "",
+                    "value": ""
+                },
+                "label": "Search Term",
+                "name": "search_term",
+                "options": [
+                    {
+                        "selected": true,
+                        "text": "",
+                        "value": ""
+                    }
+                ],
+                "query": "",
+                "type": "textbox"
+            },
+            {
+                "current": {
+                    "text": [
+                        "docker",
+                        "grafana",
+                        "loki",
+                        "prometheus",
+                        "nginx"
+                    ],
+                    "value": [
+                        "docker.*",
+                        "grafana.*",
+                        "loki.*",
+                        "prometheus.*",
+                        "nginx.*"
+                    ]
+                },
+                "hide": 2,
+                "includeAll": false,
+                "label": "Quick Filters",
+                "multi": true,
+                "name": "quick_filter",
+                "options": [
+                    {
+                        "selected": true,
+                        "text": "docker",
+                        "value": "docker.*"
+                    },
+                    {
+                        "selected": true,
+                        "text": "grafana",
+                        "value": "grafana.*"
+                    },
+                    {
+                        "selected": true,
+                        "text": "loki",
+                        "value": "loki.*"
+                    },
+                    {
+                        "selected": true,
+                        "text": "prometheus",
+                        "value": "prometheus.*"
+                    },
+                    {
+                        "selected": true,
+                        "text": "nginx",
+                        "value": "nginx.*"
+                    }
+                ],
+                "query": "docker : docker.*, grafana : grafana.*, loki : loki.*, prometheus : prometheus.*, nginx : nginx.*",
+                "type": "custom"
+            }
+        ]
+    },
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "System Log Viewer",
+    "uid": "system-logs-001",
+    "version": 3
+}

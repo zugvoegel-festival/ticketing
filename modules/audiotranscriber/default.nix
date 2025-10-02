@@ -80,7 +80,6 @@ in
     virtualisation.oci-containers = {
       backend = "docker";
       containers = {
-
         audiotranscriber-app = {
           image = cfg.app-image;
           ports = [ "${toString cfg.port}:3000" ];
