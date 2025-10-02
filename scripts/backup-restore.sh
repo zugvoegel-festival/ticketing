@@ -64,7 +64,7 @@ validate_service() {
 
 get_repo_url() {
     local service="$1"
-    echo "s3:https://s3.us-west-004.backblazeb2.com/zv-backups-${service}"
+    echo "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp/${service}"
 }
 
 list_services() {
@@ -83,7 +83,7 @@ list_services() {
                 ;;
         esac
         repo=$(get_repo_url "$service")
-        printf "%-20s %-15s %-30s\n" "$service" "$type" "$repo"
+        printf "%-20s %-15s %-50s\n" "$service" "$type" "$repo"
     done
 }
 

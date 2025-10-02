@@ -52,7 +52,7 @@
       enable = true;
       bucketPrefix = "zv-backups";
       schedule = "03:00"; # Default backup time
-      
+
       services = {
         # Pretix PostgreSQL database backup
         pretix-db = {
