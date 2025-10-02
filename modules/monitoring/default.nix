@@ -191,7 +191,6 @@ in
             {
               name = "Loki";
               type = "loki";
-              uid = "loki";
               access = "proxy";
               url = "http://127.0.0.1:${toString cfg.lokiPort}";
               isDefault = true;
@@ -199,7 +198,6 @@ in
             {
               name = "Prometheus";
               type = "prometheus";
-              uid = "prometheus";
               access = "proxy";
               url = "http://127.0.0.1:${toString cfg.prometheusPort}";
             }
