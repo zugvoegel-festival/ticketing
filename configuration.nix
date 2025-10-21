@@ -3,7 +3,7 @@
 
   imports = [ ./hardware-configuration.nix ];
   zugvoegel = {
-    services.bank-automation.enable = true;
+    services.bank-automation.enable = false;
 
     services.vikunja = {
       enable = true;

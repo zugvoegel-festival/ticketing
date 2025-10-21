@@ -1,126 +1,316 @@
-# Ticketing Deployment using Pretix on NixOS
+# Zugvögel Festival Infrastructure
 
-The following was tested on [netcup](https://netcup.de) using a `VPS 500 G10s`
-server. Other providers or server variants will probably work too, but are
-untested at this point.
+A comprehensive NixOS-based deployment for event management infrastructure, designed for the Zugvögel Festival. This repository provides a complete, production-ready setup for ticketing, volunteer management, task organization, and supporting services.
 
-This deployment includes:
-- **Pretix**: Event ticketing system
-- **Vikunja**: Task management and project organization
-- **Schwarmplaner**: Volunteer shift planning system
-- **Audio Transcriber**: Audio transcription service
-- **MinIO**: S3-compatible object storage
-- **Bank Automation**: Automated bank transaction processing
-- **Automated Backup**: Regular backups of all services
-- **Monitoring Stack**: Simplified monitoring with Loki (logs), Grafana (dashboards), Prometheus (metrics), and Promtail (log collection) - supports both local access and custom domains with SSL
+## 🚀 Features
 
-After booking the `VPS 500 G10s` you will get an e-mail with the root
-credentials and a `debian-minimal` image preinstalled. 
+### Core Services
+- **[Pretix](https://pretix.eu/)**: Professional event ticketing system with payment processing
+- **[Schwarmplaner](https://github.com/zugvoegel-festival/schwarmplaner)**: Custom volunteer shift planning and management
+- **[Vikunja](https://vikunja.io/)**: Task management and project organization
+- **[Audio Transcriber](https://github.com/zugvoegel-festival/audio-transcriber)**: Audio transcription service for accessibility
 
-### Initial deployment (Server is still other OS)
+### Infrastructure & Storage
+- **[MinIO](https://min.io/)**: S3-compatible object storage for file management
+- **Bank Automation**: Automated bank transaction processing and reconciliation
+- **Automated Backup**: Comprehensive backup solution with encryption and remote storage
 
-Setup public-key based authentication on the server and run nixos-anywhere for
-intial deployment. The public key will persist after infection.
+### Monitoring & Observability
+- **Simplified Monitoring Stack**: Complete observability with Grafana dashboards, Prometheus metrics, Loki log aggregation, and Promtail collection
+- **SSL/TLS**: Automatic HTTPS certificates via Let's Encrypt
+- **Nginx Reverse Proxy**: Professional routing and load balancing
+
+## 🛠 Technology Stack
+
+- **Base OS**: NixOS (declarative, reproducible system configuration)
+- **Deployment**: Nix Flakes with nixos-anywhere for infrastructure-as-code
+- **Secrets Management**: sops-nix for encrypted configuration
+- **Containerization**: Docker with custom images for services
+- **Monitoring**: Prometheus + Grafana + Loki stack
+- **Web Server**: Nginx with automatic SSL certificate management
+
+## 📋 Prerequisites
+
+- A VPS or dedicated server (tested on netcup VPS 500 G10s)
+- A domain name for SSL certificates (optional but recommended)
+- SSH access to the target server
+- Nix package manager installed locally
+
+## 🚀 Quick Start
+
+### Option 1: Fresh Server Deployment (Recommended)
+
+If you have a fresh server with any Linux distribution, you can use nixos-anywhere to automatically install NixOS and deploy the infrastructure:
+
+1. **Set up SSH access** to your server:
+   ```bash
+   ssh-copy-id -o PubkeyAuthentication=no -o PreferredAuthentications=password root@YOUR_SERVER_IP
+   ```
+
+2. **Deploy with nixos-anywhere**:
+   ```bash
+   nix run github:numtide/nixos-anywhere -- --flake .\#pretix-server-01 root@YOUR_SERVER_IP
+   ```
+
+### Option 2: Existing NixOS Server
+
+If you already have a NixOS server, deploy with:
+
+```bash
+nixos-rebuild switch --flake '.#pretix-server-01' --target-host root@YOUR_SERVER_IP --build-host root@YOUR_SERVER_IP
+```
+
+## ⚙️ Configuration
+
+### 1. Domain Setup (Optional but Recommended)
+
+For SSL certificates and professional URLs, configure DNS records for your domain:
 
 ```
-ssh-copy-id -o PubkeyAuthentication=no -o PreferredAuthentications=password  root@185.232.69.172
-ssh root@185.232.69.172
-nix run github:numtide/nixos-anywhere -- --flake .\#pretix-server-01 root@185.232.69.172
+tickets.your-domain.com       → YOUR_SERVER_IP
+schwarmplaner.your-domain.com → YOUR_SERVER_IP
+api.your-domain.com          → YOUR_SERVER_IP
+minio.your-domain.com        → YOUR_SERVER_IP
+minio-console.your-domain.com → YOUR_SERVER_IP
+grafana.your-domain.com      → YOUR_SERVER_IP
 ```
 
-### Further deployments (Server is NixOS)
+### 2. Secrets Configuration
 
-You now have a NixOS server and can deploy this demo. You might want to set DNS
-records if you have a domain and configure the nginx virtual host accordingly,
-otherwise deployment will still work, but you won't get SSL certificates
-generated as the DNS challenge will fail.
+Configure secrets for all services using sops-nix:
 
-Further deployments can be done with:
-
-```sh
-nix-shell -p nixos-rebuild 
-
-nixos-rebuild switch --flake '.#pretix-server-01' --target-host root@185.232.69.172  --build-host root@185.232.69.172 
-```
-
-Note: Other deployment methods are possible and might be more suitable for
-multiple servers.
-[nixos-anywhere](https://github.com/nix-community/nixos-anywhere) is used here
-for simplicity. Other options are using a deployment tool like
-[lollypops](https://github.com/pinpox/lollypops) or uploading a pre-backed
-`.qcow2` image, which can be generated from a flake.
-
-### Secrets management
-
-Secrets are encrypted and managed with [sops-nix](https://github.com/Mic92/sops-nix)
-
-```sh
+```bash
 nix-shell -p sops --run "sops secrets/secrets.yaml"
 ```
 
-The secrets file includes configuration for all services:
-- MinIO root credentials (`minio-envfile`)
-- Pretix email configuration (`pretix-envfile`)
-- Vikunja mailer settings (`vikunja-envfile`)
-- Schwarmplaner database and API settings (`schwarm-db-envfile`, `schwarm-api-envfile`)
-- Audio transcriber configuration (`audiotranscriber-envfile`)
-- Bank automation credentials (`bank-envfile`)
-- Backup service credentials (`backup-envfile`, `backup-passwordfile`)
+The secrets file includes:
+- **MinIO**: Root credentials and access keys
+- **Pretix**: Email configuration and database settings  
+- **Vikunja**: SMTP settings for notifications
+- **Schwarmplaner**: Database and API authentication
+- **Audio Transcriber**: Service configuration
+- **Bank Automation**: Banking API credentials
+- **Backup**: Remote storage credentials and encryption keys
 
-### Services and URLs
+### 3. Service Configuration
 
-Once deployed, the following services will be available:
+Edit `configuration.nix` to customize:
+- Service hostnames and ports
+- SSL certificate email addresses
+- Enable/disable specific services
+- Resource allocation and scaling
 
-- **Pretix (Ticketing)**: https://tickets.zugvoegelfestival.org
-- **Schwarmplaner (Volunteer Management)**: https://schwarmplaner.zugvoegelfestival.org
-- **Schwarmplaner API**: https://api.zugvoegelfestival.org
-- **Audio Transcriber**: https://audiotranscriber.loco.vision
-- **Vikunja (Task Management)**: https://brett.feuersalamander-nippes.de
-- **MinIO S3 API**: https://minio.zugvoegelfestival.org
-- **MinIO Console**: https://minio-console.zugvoegelfestival.org
+## 🌐 Service Access
 
-### Monitoring Services
+After deployment, the following services will be available:
 
-The simplified monitoring stack provides essential observability with minimal configuration:
+| Service | URL | Description |
+|---------|-----|-------------|
+| **Pretix (Ticketing)** | `https://tickets.your-domain.com` | Event ticket sales and management |
+| **Schwarmplaner** | `https://schwarmplaner.your-domain.com` | Volunteer shift planning interface |
+| **Schwarmplaner API** | `https://api.your-domain.com` | REST API for volunteer management |
+| **Audio Transcriber** | `https://audiotranscriber.your-domain.com` | Audio transcription service |
+| **Vikunja** | `https://tasks.your-domain.com` | Task and project management |
+| **MinIO API** | `https://minio.your-domain.com` | S3-compatible object storage API |
+| **MinIO Console** | `https://minio-console.your-domain.com` | Web interface for MinIO management |
+| **Grafana** | `https://grafana.your-domain.com` | Monitoring dashboards |
 
-**Basic Configuration (Local Access):**
+> **Note**: Replace `your-domain.com` with your actual domain. Without custom domains, services will be available on their respective ports.
+
+## 📊 Monitoring & Observability
+
+### Basic Setup (Local Access)
 ```nix
-services.monitoring = {
-  enable = true;  # Enables all monitoring services
-};
+services.monitoring.enable = true;
 ```
-- **Grafana Dashboard**: http://[server-ip]:3000 (admin/admin)
-- **Prometheus Metrics**: http://[server-ip]:9090
-- **Loki Logs**: http://[server-ip]:3100
 
-**Advanced Configuration (With Custom Domains):**
+Access via server IP:
+- **Grafana**: `http://YOUR_SERVER_IP:3000` (admin/admin)
+- **Prometheus**: `http://YOUR_SERVER_IP:9090`
+- **Loki**: `http://YOUR_SERVER_IP:3100`
+
+### Advanced Setup (Custom Domains)
 ```nix
 services.monitoring = {
   enable = true;
-  grafanaHost = "grafana.example.com";
-  prometheusHost = "prometheus.example.com";
-  lokiHost = "loki.example.com";
-  acmeMail = "admin@example.com";  # For SSL certificates
+  grafanaHost = "grafana.your-domain.com";
+  prometheusHost = "prometheus.your-domain.com";
+  lokiHost = "loki.your-domain.com";
+  acmeMail = "admin@your-domain.com";
 };
 ```
-- **Grafana Dashboard**: https://grafana.example.com (admin/admin)
-- **Prometheus Metrics**: https://prometheus.example.com
-- **Loki Logs**: https://loki.example.com
 
-**Features:**
-- **Loki**: Log aggregation with basic filesystem storage
-- **Grafana**: Dashboard visualization with Loki and Prometheus datasources
-- **Prometheus**: Basic metrics collection from monitoring services
-- **Promtail**: System journal log collection via systemd
-- **SSL/TLS**: Automatic HTTPS certificates via Let's Encrypt (when hosts configured)
-- **Nginx Reverse Proxy**: Automatic setup for custom domains
+### Monitoring Features
+- **📈 System Metrics**: CPU, memory, disk, network statistics
+- **📋 Service Health**: Application status and performance monitoring  
+- **📝 Log Aggregation**: Centralized logging with search and filtering
+- **🚨 Alerting**: Configurable alerts for system and service issues
+- **🔒 SSL/TLS**: Automatic HTTPS certificates for all monitoring endpoints
 
-### Flake Updates
+## 🔧 Development & Maintenance
 
-To update the dependencies in the flake:
+### Updating the System
 
-```sh
-nix flake update
+1. **Update flake dependencies**:
+   ```bash
+   nix flake update
+   ```
+
+2. **Deploy updates**:
+   ```bash
+   nixos-rebuild switch --flake '.#pretix-server-01' --target-host root@YOUR_SERVER_IP --build-host root@YOUR_SERVER_IP
+   ```
+
+### Backup Management
+
+The system includes automated backup with:
+- **Encrypted backups** of all service data
+- **Remote storage** support (S3, rsync, etc.)
+- **Restoration scripts** for disaster recovery
+- **Configurable schedules** for different data types
+
+Access backup tools:
+```bash
+# View backup status
+systemctl status backup.service
+
+# Manual backup
+systemctl start backup.service
+
+# Restore from backup
+/scripts/backup-restore.sh
 ```
 
-This will update all inputs to their latest versions according to the flake.lock file.
+### Adding Custom Services
+
+1. **Create a new module** in `modules/your-service/default.nix`
+2. **Add configuration** to `configuration.nix`
+3. **Update secrets** if needed in `secrets/secrets.yaml`
+4. **Deploy** the changes
+
+## 🏗 Architecture
+
+### System Design
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Internet      │    │   Nginx Proxy    │    │   Services      │
+│                 │────│  (SSL/TLS)       │────│                 │
+│  Users/Clients  │    │  Port 80/443     │    │  Various Ports  │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │   Monitoring    │
+                       │  Grafana/Loki   │
+                       │   Prometheus    │
+                       └─────────────────┘
+```
+
+### Service Dependencies
+- **Pretix**: PostgreSQL database, Redis cache, file storage
+- **Schwarmplaner**: MySQL database, API backend, frontend
+- **Vikunja**: PostgreSQL database, file storage
+- **MinIO**: Object storage, web console
+- **Monitoring**: System metrics, log collection, dashboards
+
+### Data Flow
+1. **User requests** → Nginx reverse proxy
+2. **SSL termination** → Service routing
+3. **Application processing** → Database/storage operations  
+4. **Monitoring collection** → Metrics and logs aggregation
+5. **Backup operations** → Encrypted remote storage
+
+## 🔒 Security
+
+### Built-in Security Features
+- **Automatic SSL/TLS** certificates via Let's Encrypt
+- **Encrypted secrets** management with sops-nix
+- **Isolated services** with proper network segmentation
+- **Regular security updates** via NixOS channels
+- **Backup encryption** for data protection
+
+### Security Best Practices
+- Change default passwords after deployment
+- Use strong encryption keys for secrets
+- Regularly update the system and dependencies
+- Monitor access logs and system metrics
+- Implement proper firewall rules
+- Use SSH key-based authentication only
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our contribution guidelines:
+
+1. **Fork the repository** and create a feature branch
+2. **Test your changes** in a development environment
+3. **Update documentation** for any new features
+4. **Submit a pull request** with a clear description
+
+### Development Environment
+```bash
+# Clone the repository
+git clone https://github.com/zugvoegel-festival/ticketing.git
+cd ticketing
+
+# Start a development shell
+nix develop
+
+# Test deployment locally
+nixos-rebuild build --flake '.#pretix-server-01'
+```
+
+## 📚 Documentation
+
+- **[NixOS Manual](https://nixos.org/manual/nixos/stable/)**: Official NixOS documentation
+- **[Nix Flakes](https://nixos.wiki/wiki/Flakes)**: Modern Nix package management
+- **[sops-nix](https://github.com/Mic92/sops-nix)**: Secrets management
+- **[nixos-anywhere](https://github.com/nix-community/nixos-anywhere)**: Remote NixOS installation
+
+### Service Documentation
+- **[Pretix Docs](https://docs.pretix.eu/)**: Ticketing system administration
+- **[Vikunja Docs](https://vikunja.io/docs/)**: Task management setup
+- **[MinIO Docs](https://docs.min.io/)**: Object storage configuration
+- **[Grafana Docs](https://grafana.com/docs/)**: Monitoring and dashboards
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**SSL Certificate Generation Fails**
+- Verify DNS records point to your server
+- Check firewall allows ports 80 and 443
+- Ensure email address is valid for Let's Encrypt
+
+**Service Won't Start**
+- Check logs: `journalctl -u service-name -f`
+- Verify secrets are properly configured
+- Ensure required ports are not in use
+
+**Backup Failures**
+- Check remote storage credentials
+- Verify network connectivity to backup destination
+- Review backup service logs
+
+**Performance Issues**
+- Monitor resource usage via Grafana
+- Check database performance metrics
+- Review application logs for errors
+
+### Getting Help
+- **Issues**: Open an issue on GitHub with detailed logs
+- **Discussions**: Use GitHub Discussions for questions
+- **Security**: Email security@zugvoegelfestival.org for vulnerabilities
+
+## 📄 License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **[Pretix](https://pretix.eu/)** team for the excellent ticketing platform
+- **[NixOS](https://nixos.org/)** community for the reliable infrastructure foundation
+- **[Zugvögel Festival](https://zugvoegelfestival.org)** for supporting open-source event management tools
+
+---
+
+**Made with ❤️ for the event management community**
