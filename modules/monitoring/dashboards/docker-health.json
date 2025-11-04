@@ -122,7 +122,7 @@
                         "type": "prometheus",
                         "uid": "PBFA97CFB590B2093"
                     },
-                    "expr": "node_systemd_unit_state{name=\"docker-audiotranscriber-app.service\", state=\"active\"}",
+                    "expr": "node_systemd_unit_state{name=\"docker-audiotranscriber-pwa.service\", state=\"active\"}",
                     "legendFormat": "Audio Transcriber",
                     "refId": "D"
                 },

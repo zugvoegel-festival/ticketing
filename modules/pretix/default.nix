@@ -16,7 +16,6 @@ in
     # Define option to set the host
     host = mkOption {
       type = types.str;
-      default = null;
       example = "demo.megaclan3000.de";
       description = "Host serving pretix web service";
     };
@@ -37,7 +36,6 @@ in
 
     acmeMail = mkOption {
       type = types.str;
-      default = null;
       example = "admin@pretix.eu";
       description = "Email for SSL Certificate Renewal";
     };

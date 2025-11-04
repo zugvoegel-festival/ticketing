@@ -304,27 +304,36 @@ in
     };
 
     # Nginx virtual hosts for monitoring services
-    services.nginx = {
-      enable = true;
-      recommendedProxySettings = true;
-      recommendedTlsSettings = true;
-      virtualHosts."${cfg.grafanaHost}" = {
-        forceSSL = true;
-        enableACME = true;
-        locations."/".proxyPass = "http://127.0.0.1:${toString cfg.grafanaPort}";
-        locations."/".proxyWebsockets = true;
-      };
-      virtualHosts."${cfg.prometheusHost}" = {
-        forceSSL = true;
-        enableACME = true;
-        locations."/".proxyPass = "http://127.0.0.1:${toString cfg.prometheusPort}";
-      };
-      virtualHosts."${cfg.lokiHost}" = {
-        forceSSL = true;
-        enableACME = true;
-        locations."/".proxyPass = "http://127.0.0.1:${toString cfg.lokiPort}";
-      };
-    };
+    services.nginx =
+      mkIf (cfg.grafanaHost != null || cfg.prometheusHost != null || cfg.lokiHost != null)
+        {
+          enable = true;
+          recommendedProxySettings = true;
+          recommendedTlsSettings = true;
+          virtualHosts =
+            (mkIf (cfg.grafanaHost != null) {
+              "${cfg.grafanaHost}" = {
+                forceSSL = true;
+                enableACME = true;
+                locations."/".proxyPass = "http://127.0.0.1:${toString cfg.grafanaPort}";
+                locations."/".proxyWebsockets = true;
+              };
+            })
+            // (mkIf (cfg.prometheusHost != null) {
+              "${cfg.prometheusHost}" = {
+                forceSSL = true;
+                enableACME = true;
+                locations."/".proxyPass = "http://127.0.0.1:${toString cfg.prometheusPort}";
+              };
+            })
+            // (mkIf (cfg.lokiHost != null) {
+              "${cfg.lokiHost}" = {
+                forceSSL = true;
+                enableACME = true;
+                locations."/".proxyPass = "http://127.0.0.1:${toString cfg.lokiPort}";
+              };
+            });
+        };
     # ACME configuration for SSL certificates
     security.acme =
       mkIf

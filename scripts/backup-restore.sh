@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Backup and Restore Management Script for Zugvoegel Services
 # This script helps manage individual service backups and restores
+#
+# Features:
+# - Automatic repository initialization if repository doesn't exist
+# - Dynamic configuration from NixOS deployment
+# - Support for multiple backup services
+# - List, backup, restore, and init operations
 
 set -euo pipefail
 
@@ -14,8 +20,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Available services
-SERVICES=("pretix-db" "pretix-data" "schwarmplaner-db" "audiotranscriber" "minio")
+# Available services (injected at build time)
+SERVICES=(@serviceList@)
 
 usage() {
     echo "Usage: $0 <command> [options]"
@@ -64,7 +70,42 @@ validate_service() {
 
 get_repo_url() {
     local service="$1"
-    echo "s3:https://s3.us-west-004.backblazeb2.com/zugvoegelticketingbkp/${service}"
+    echo "@s3BaseUrl@/@bucketPrefix@/${service}"
+}
+
+setup_restic_env() {
+    local service="$1"
+    local repo=$(get_repo_url "$service")
+
+    # Source the environment file for credentials
+    if [[ -f "/run/secrets/backup-envfile" ]]; then
+        set -a
+        source /run/secrets/backup-envfile
+        set +a
+    fi
+
+    export RESTIC_REPOSITORY="$repo"
+    export RESTIC_PASSWORD_FILE="/run/secrets/backup-passwordfile"
+}
+
+check_and_init_repo() {
+    local service="$1"
+
+    setup_restic_env "$service"
+
+    # Check if repository exists by trying to get snapshots
+    if ! restic snapshots --quiet >/dev/null 2>&1; then
+        warn "Repository does not exist for $service. Initializing..."
+
+        if restic init; then
+            success "Repository initialized successfully for $service"
+        else
+            error "Failed to initialize repository for $service"
+            return 1
+        fi
+    fi
+
+    return 0
 }
 
 list_services() {
@@ -72,7 +113,7 @@ list_services() {
     echo ""
     printf "%-20s %-15s %-30s\n" "Service" "Type" "Repository"
     printf "%-20s %-15s %-30s\n" "-------" "----" "----------"
-    
+
     for service in "${SERVICES[@]}"; do
         case "$service" in
             *-db)
@@ -89,7 +130,7 @@ list_services() {
 
 show_status() {
     local service="${1:-all}"
-    
+
     if [[ "$service" == "all" ]]; then
         echo "Backup service status:"
         echo ""
@@ -105,19 +146,19 @@ show_status() {
 show_service_status() {
     local service="$1"
     local service_name="restic-backups-${service}.service"
-    
+
     echo "=== $service ==="
-    
+
     if systemctl is-active --quiet "$service_name" 2>/dev/null; then
         success "Service is currently running"
     elif systemctl list-unit-files "$service_name" 2>/dev/null | grep -q "$service_name"; then
         echo "Service is available"
-        
+
         # Check last run status
         local last_run=$(systemctl show "$service_name" -p ExecMainStartTimestamp --value)
         if [[ -n "$last_run" && "$last_run" != "n/a" ]]; then
             echo "Last run: $last_run"
-            
+
             # Check if it succeeded
             local status_output=$(SYSTEMD_COLORS=false systemctl status "$service_name" --no-pager)
             if echo "$status_output" | grep -q "Main PID.*code=exited, status=0/SUCCESS"; then
@@ -131,7 +172,7 @@ show_service_status() {
     else
         warn "Service not found or not enabled"
     fi
-    
+
     # Show next scheduled run
     local timer_name="restic-backups-${service}.timer"
     if systemctl is-enabled --quiet "$timer_name" 2>/dev/null; then
@@ -140,21 +181,21 @@ show_service_status() {
             echo "Next scheduled run: $next_run"
         fi
     fi
-    
+
     echo ""
 }
 
 run_backup() {
     local service="$1"
     validate_service "$service"
-    
+
     local service_name="restic-backups-${service}.service"
-    
+
     log "Starting backup for service: $service"
-    
+
     if systemctl start "$service_name"; then
         log "Backup started. Monitoring progress..."
-        
+
         # Wait for service to start and monitor
         sleep 2
         while systemctl is-active --quiet "$service_name"; do
@@ -162,7 +203,7 @@ run_backup() {
             sleep 5
         done
         echo ""
-        
+
         local status_output=$(SYSTEMD_COLORS=false systemctl status "$service_name" --no-pager)
         if echo "$status_output" | grep -q "Main PID.*code=exited, status=0/SUCCESS"; then
             success "Backup completed successfully for $service"
@@ -180,25 +221,18 @@ run_backup() {
 list_snapshots() {
     local service="$1"
     validate_service "$service"
-    
+
     local repo=$(get_repo_url "$service")
-    
+
     log "Listing snapshots for $service..."
     echo "Repository: $repo"
     echo ""
-    
-    # Source the environment file for credentials
-    if [[ -f "/run/secrets/backup-envfile" ]]; then
-        set -a
-        source /run/secrets/backup-envfile
-        set +a
-    fi
-    
-    export RESTIC_REPOSITORY="$repo"
-    export RESTIC_PASSWORD_FILE="/run/secrets/backup-passwordfile"
-    
+
+    # Check and initialize repository if needed
+    check_and_init_repo "$service" || exit 1
+
     restic snapshots --tag "$service" || {
-        error "Failed to list snapshots. Repository may not exist or credentials may be invalid."
+        error "Failed to list snapshots. Check credentials or repository access."
         exit 1
     }
 }
@@ -207,32 +241,25 @@ restore_snapshot() {
     local service="$1"
     local snapshot_id="$2"
     local target_path="$3"
-    
+
     validate_service "$service"
-    
+
     if [[ -z "$snapshot_id" || -z "$target_path" ]]; then
         error "Missing snapshot ID or target path"
         usage
         exit 1
     fi
-    
+
     local repo=$(get_repo_url "$service")
-    
+
     log "Restoring $service from snapshot $snapshot_id to $target_path..."
-    
+
+    # Check and initialize repository if needed
+    check_and_init_repo "$service" || exit 1
+
     # Create target directory
     mkdir -p "$target_path"
-    
-    # Source the environment file for credentials
-    if [[ -f "/run/secrets/backup-envfile" ]]; then
-        set -a
-        source /run/secrets/backup-envfile
-        set +a
-    fi
-    
-    export RESTIC_REPOSITORY="$repo"
-    export RESTIC_PASSWORD_FILE="/run/secrets/backup-passwordfile"
-    
+
     if restic restore "$snapshot_id" --target "$target_path" --tag "$service"; then
         success "Restore completed successfully"
         echo "Restored files are in: $target_path"
@@ -245,22 +272,14 @@ restore_snapshot() {
 init_repository() {
     local service="$1"
     validate_service "$service"
-    
+
     local repo=$(get_repo_url "$service")
-    
+
     log "Initializing repository for $service..."
     echo "Repository: $repo"
-    
-    # Source the environment file for credentials
-    if [[ -f "/run/secrets/backup-envfile" ]]; then
-        set -a
-        source /run/secrets/backup-envfile
-        set +a
-    fi
-    
-    export RESTIC_REPOSITORY="$repo"
-    export RESTIC_PASSWORD_FILE="/run/secrets/backup-passwordfile"
-    
+
+    setup_restic_env "$service"
+
     if restic init; then
         success "Repository initialized successfully for $service"
     else

@@ -8,13 +8,11 @@ in
     enable = mkEnableOption "schwarmplaner service";
     host = mkOption {
       type = types.str;
-      default = null;
       example = "demo.megaclan3000.de";
       description = "Host serving service";
     };
     apiHost = mkOption {
       type = types.str;
-      default = null;
       example = "api.megaclan3000.de";
       description = "Host api serving service";
     };
@@ -39,7 +37,6 @@ in
     };
     acmeMail = mkOption {
       type = types.str;
-      default = null;
       example = "admin@pretix.eu";
       description = "Email for SSL Certificate Renewal";
     };

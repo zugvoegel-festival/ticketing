@@ -1,4 +1,12 @@
-{ pkgs, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
+let
+  cfg = config.zugvoegel.services.backup;
+in
 {
 
   imports = [ ./hardware-configuration.nix ];
@@ -32,17 +40,16 @@
 
     services.audiotranscriber = {
       enable = true;
-      host = "audiotranscriber.loco.vision";
+      host = "audiotranscriber-test.loco.vision";
       app-image = "manulinger/audio-transcriber:latest";
-      nginx-image = "manulinger/zv-schwarmplaner:nginx";
       acmeMail = "webmaster@zugvoegelfestival.org";
       port = 8001;
     };
 
     services.minio = {
       enable = true;
-      host = "minio.loco.vision";
-      consoleHost = "minio-console.loco.vision";
+      host = "minio-test.loco.vision";
+      consoleHost = "minio-console-test.loco.vision";
       acmeMail = "webmaster@zugvoegelfestival.org";
       port = 9000;
       consolePort = 9001;
@@ -50,6 +57,7 @@
 
     services.backup = {
       enable = true;
+      s3BaseUrl = "s3:https://s3.us-west-004.backblazeb2.com";
       bucketPrefix = "zv-backups";
       schedule = "03:00"; # Default backup time
 
@@ -92,10 +100,10 @@
         };
 
         # Audio Transcriber data backup
-        audiotranscriber = {
+        audiotranscriber-pwa = {
           enable = true;
           type = "files";
-          paths = [ "/var/lib/audiotranscriber/data" ];
+          paths = [ "/var/lib/audiotranscriber-pwa/data" ];
           excludePaths = [
             "*/temp/*"
             "*/processing/*"
@@ -120,9 +128,9 @@
 
     services.monitoring = {
       enable = true;
-      grafanaHost = "grafana.loco.vision";
-      prometheusHost = "prometheus.loco.vision";
-      lokiHost = "loki.loco.vision";
+      grafanaHost = "grafana-test.loco.vision";
+      #    prometheusHost = "prometheus.loco.vision";
+      #   lokiHost = "loki.loco.vision";
       acmeMail = "webmaster@zugvoegelfestival.org";
       grafanaPort = 4000;
       lokiPort = 4001;
@@ -139,7 +147,14 @@
   };
 
   sops.defaultSopsFile = ./secrets/secrets.yaml; # "Install" git
-  environment.systemPackages = [ pkgs.git ];
+
+  # System packages and admin scripts
+  environment.systemPackages = [
+    pkgs.git
+    (pkgs.writeScriptBin "audiotranscriber-admin" (
+      builtins.readFile ./scripts/audiotranscriber-admin.sh
+    ))
+  ];
 
   # Time zone and internationalisation
   time.timeZone = "Europe/Berlin";

@@ -118,8 +118,21 @@ in
 
   config = mkIf cfg.enable {
 
-    environment.systemPackages = with pkgs; [ restic ];
-
+    environment.systemPackages = with pkgs; [
+      restic
+      (pkgs.writeScriptBin "backup-restore" (
+        builtins.readFile (
+          pkgs.substituteAll {
+            src = ../../scripts/backup-restore.sh;
+            s3BaseUrl = cfg.s3BaseUrl;
+            bucketPrefix = cfg.bucketPrefix;
+            serviceList = builtins.concatStringsSep " " (
+              builtins.attrNames (lib.filterAttrs (_: v: v.enable) cfg.services)
+            );
+          }
+        )
+      ))
+    ];
     sops.secrets.backup-envfile = { };
     sops.secrets.backup-passwordfile = { };
 
@@ -129,7 +142,7 @@ in
         createBackup =
           serviceName: serviceConfig:
           let
-            repository = "${cfg.s3BaseUrl}/zugvoegelticketingbkp/${serviceName}";
+            repository = "${cfg.s3BaseUrl}/${cfg.bucketPrefix}-${serviceName}";
 
             # Create exclude file if paths are specified
             excludeFile =
@@ -206,5 +219,55 @@ in
         enabledServices = lib.filterAttrs (_: serviceConfig: serviceConfig.enable) cfg.services;
       in
       builtins.listToAttrs (lib.mapAttrsToList createBackup enabledServices);
+
+    # Create a oneshot service to initialize all repositories on deployment
+    systemd.services.restic-init-repositories = {
+      description = "Initialize restic backup repositories";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        EnvironmentFile = config.sops.secrets.backup-envfile.path;
+      };
+
+      script =
+        let
+          enabledServices = lib.filterAttrs (_: serviceConfig: serviceConfig.enable) cfg.services;
+          initCommands =
+            lib.mapAttrsToList
+              (
+                serviceName: _:
+                let
+                  repository = "${cfg.s3BaseUrl}/${cfg.bucketPrefix}-${serviceName}";
+                in
+                ''
+                  echo "Checking repository for ${serviceName}..."
+                  export RESTIC_REPOSITORY="${repository}"
+                  export RESTIC_PASSWORD_FILE="${config.sops.secrets.backup-passwordfile.path}"
+
+                  # Try to check if repository exists, if not initialize it
+                  if ! ${pkgs.restic}/bin/restic cat config &>/dev/null; then
+                    echo "Initializing repository for ${serviceName}..."
+                    if ${pkgs.restic}/bin/restic init; then
+                      echo "Successfully initialized repository for ${serviceName}"
+                    else
+                      echo "Warning: Failed to initialize repository for ${serviceName} (may already exist)"
+                    fi
+                  else
+                    echo "Repository for ${serviceName} already exists"
+                  fi
+                ''
+              )
+              enabledServices;
+        in
+        ''
+          set +e  # Don't fail if a repository already exists
+          ${builtins.concatStringsSep "\n" initCommands}
+          echo "Repository initialization complete"
+        '';
+    };
   };
 }

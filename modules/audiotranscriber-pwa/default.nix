@@ -8,27 +8,23 @@ in
     enable = mkEnableOption "audio transcriber service";
     host = mkOption {
       type = types.str;
-      default = null;
       example = "demo.megaclan3000.de";
       description = "Host serving service";
     };
 
     app-image = mkOption {
       type = types.str;
-      default = null;
       example = "dockeruser/repository-name:tag";
       description = "Docker image with tag";
     };
 
     nginx-image = mkOption {
       type = types.str;
-      default = null;
       example = "dockeruser/repository-name:tag";
       description = "Docker image with tag";
     };
     acmeMail = mkOption {
       type = types.str;
-      default = null;
       example = "admin@pretix.eu";
       description = "Email for SSL Certificate Renewal";
     };
@@ -43,15 +39,15 @@ in
 
     sops.secrets.audiotranscriber-envfile = { };
 
-    systemd.services.init-audiotranscriber-data-dir = {
-      description = "Create audiotranscriber data directory";
+    systemd.services.init-audiotranscriber-pwa-data-dir = {
+      description = "Create audiotranscriber-pwa data directory";
       wantedBy = [ "multi-user.target" ];
-      before = [ "docker-audiotranscriber-app.service" ];
+      before = [ "docker-audiotranscriber-pwa.service" ];
       serviceConfig.Type = "oneshot";
       script = ''
-        mkdir -p /var/lib/audiotranscriber/data
-        chown -R 1000:1000 /var/lib/audiotranscriber/data
-        chmod -R 755 /var/lib/audiotranscriber/data
+        mkdir -p /var/lib/audiotranscriber-pwa/data
+        chown -R 1000:1000 /var/lib/audiotranscriber-pwa/data
+        chmod -R 755 /var/lib/audiotranscriber-pwa/data
       '';
     };
 
@@ -80,10 +76,10 @@ in
     virtualisation.oci-containers = {
       backend = "docker";
       containers = {
-        audiotranscriber-app = {
+        audiotranscriber-pwa = {
           image = cfg.app-image;
           ports = [ "${toString cfg.port}:3000" ];
-          volumes = [ "/var/lib/audiotranscriber/data:/app/data" ];
+          volumes = [ "/var/lib/audiotranscriber-pwa/data:/app/data" ];
           environmentFiles = [ config.sops.secrets.audiotranscriber-envfile.path ];
           extraOptions = [
             "--pull=always"
