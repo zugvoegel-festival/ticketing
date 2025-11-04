@@ -118,21 +118,23 @@ in
 
   config = mkIf cfg.enable {
 
-    environment.systemPackages = with pkgs; [
-      restic
-      (pkgs.writeScriptBin "backup-restore" (
-        builtins.readFile (
-          pkgs.substituteAll {
-            src = ../../scripts/backup-restore.sh;
+    environment.systemPackages =
+      let
+        serviceList = builtins.concatStringsSep " " (
+          map (s: ''"${s}"'') (builtins.attrNames (lib.filterAttrs (_: v: v.enable) cfg.services))
+        );
+      in
+      with pkgs;
+      [
+        restic
+        (writeScriptBin "backup-restore" (
+          replaceVars (builtins.readFile ../../scripts/backup-restore.sh) {
+            inherit serviceList;
             s3BaseUrl = cfg.s3BaseUrl;
             bucketPrefix = cfg.bucketPrefix;
-            serviceList = builtins.concatStringsSep " " (
-              builtins.attrNames (lib.filterAttrs (_: v: v.enable) cfg.services)
-            );
           }
-        )
-      ))
-    ];
+        ))
+      ];
     sops.secrets.backup-envfile = { };
     sops.secrets.backup-passwordfile = { };
 
