@@ -120,19 +120,25 @@ in
 
     environment.systemPackages =
       let
-        serviceList = builtins.concatStringsSep " " (
-          map (s: ''"${s}"'') (builtins.attrNames (lib.filterAttrs (_: v: v.enable) cfg.services))
-        );
+        enabledServiceNames = builtins.attrNames (lib.filterAttrs (_: v: v.enable) cfg.services);
+        serviceList = builtins.concatStringsSep " " (map (s: ''"${s}"'') enabledServiceNames);
       in
       with pkgs;
       [
         restic
         (writeScriptBin "backup-restore" (
-          replaceVars (builtins.readFile ../../scripts/backup-restore.sh) {
-            inherit serviceList;
-            s3BaseUrl = cfg.s3BaseUrl;
-            bucketPrefix = cfg.bucketPrefix;
-          }
+          builtins.replaceStrings
+            [
+              "@serviceList@"
+              "@s3BaseUrl@"
+              "@bucketPrefix@"
+            ]
+            [
+              "${serviceList}"
+              cfg.s3BaseUrl
+              cfg.bucketPrefix
+            ]
+            (builtins.readFile ../../scripts/backup-restore.sh)
         ))
       ];
     sops.secrets.backup-envfile = { };
