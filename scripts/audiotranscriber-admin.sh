@@ -8,6 +8,7 @@ CONTAINER_NAME="audiotranscriber-pwa"
 DATA_DIR="/var/lib/audiotranscriber-pwa/data"
 BACKUP_DIR="/var/backups/audiotranscriber-pwa"
 SERVICE_NAME="docker-audiotranscriber-pwa.service"
+IMAGE_BASE="manulinger/audio-transcriber"
 
 # Colors for output
 RED='\033[0;31m'
@@ -32,24 +33,31 @@ show_help() {
     cat << EOF
 Audio Transcriber Management Script
 
-Usage: $(basename "$0") <command>
+Usage: $(basename "$0") <command> [options]
 
-Commands:
-    restart        Restart the audio transcriber service
-    backup         Create a local backup of the audio transcriber database/data
-    backup-restic  Create a backup using restic (to remote S3 storage)
-    restore        Restore the audio transcriber database/data from local backup
-    status         Show current status of the service
-    logs           Show recent logs from the service
-    logs-restic    Show logs from the restic backup service
-    help           Show this help message
+Version Management:
+    current-version    Show currently deployed version
+    list-versions      List available Docker image versions
+    deploy <version>   Deploy specific version (e.g., v1.2.3, latest)
+    rollback          Rollback to previous version
+
+Service Management:
+    restart           Restart the audio transcriber service
+    status            Show current status of the service
+    logs              Show recent logs from the service
+
+Backup & Restore:
+    backup            Create a local backup of the audio transcriber database/data
+    backup-restic     Create a backup using restic (to remote S3 storage)
+    restore           Restore the audio transcriber database/data from local backup
+    logs-restic       Show logs from the restic backup service
 
 Examples:
+    $(basename "$0") current-version
+    $(basename "$0") deploy v1.2.3
+    $(basename "$0") rollback
     $(basename "$0") restart
     $(basename "$0") backup
-    $(basename "$0") backup-restic
-    $(basename "$0") restore /path/to/backup.tar.gz
-    $(basename "$0") logs-restic
 
 EOF
 }
@@ -58,6 +66,138 @@ check_root() {
     if [[ $EUID -ne 0 ]]; then
         error "This script must be run as root (use sudo)"
     fi
+}
+
+get_current_version() {
+    if docker ps --format "table {{.Image}}" | grep -q "$IMAGE_BASE"; then
+        docker ps --format "{{.Image}}" | grep "$IMAGE_BASE" | head -1 | cut -d: -f2
+    else
+        echo "not-running"
+    fi
+}
+
+get_current_image() {
+    if docker ps --format "table {{.Image}}" | grep -q "$IMAGE_BASE"; then
+        docker ps --format "{{.Image}}" | grep "$IMAGE_BASE" | head -1
+    else
+        echo "$IMAGE_BASE:latest"
+    fi
+}
+
+show_current_version() {
+    local current_version=$(get_current_version)
+    local current_image=$(get_current_image)
+    
+    log "Current Audio Transcriber Version Information:"
+    echo "  Image: $current_image"
+    echo "  Version: $current_version"
+    echo "  Container: $CONTAINER_NAME"
+    echo "  Service: $SERVICE_NAME"
+    
+    if [[ "$current_version" != "not-running" ]]; then
+        echo "  Status: $(systemctl is-active "$SERVICE_NAME" || echo "inactive")"
+    else
+        echo "  Status: Container not running"
+    fi
+}
+
+list_available_versions() {
+    log "Fetching available versions for $IMAGE_BASE..."
+    
+    # Try to get tags from Docker Hub API
+    if command -v curl &> /dev/null; then
+        log "Available versions from Docker Hub:"
+        curl -s "https://registry.hub.docker.com/v2/repositories/$IMAGE_BASE/tags/" | \
+        python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    tags = [tag['name'] for tag in data.get('results', [])][:10]
+    for tag in tags:
+        print(f'  - {tag}')
+except:
+    print('  Error fetching versions from registry')
+" 2>/dev/null || echo "  Error: Could not fetch versions from Docker Hub"
+    else
+        warn "curl not available - cannot fetch remote versions"
+    fi
+    
+    # Show locally available images
+    log "Locally available images:"
+    docker images "$IMAGE_BASE" --format "table {{.Tag}}\t{{.CreatedAt}}\t{{.Size}}" | tail -n +2 | sed 's/^/  /' || echo "  No local images found"
+}
+
+deploy_version() {
+    local version="$1"
+    local new_image="$IMAGE_BASE:$version"
+    local current_image=$(get_current_image)
+    
+    if [[ -z "$version" ]]; then
+        error "Version is required. Usage: deploy <version>"
+    fi
+    
+    log "Deploying Audio Transcriber version: $version"
+    log "New image: $new_image"
+    log "Current image: $current_image"
+    
+    # Create backup before deployment
+    log "Creating backup before version deployment..."
+    backup_data
+    
+    # Record current version for rollback
+    echo "$current_image" > "$BACKUP_DIR/last-version.txt"
+    echo "$(date): Deployed $new_image (previous: $current_image)" >> "$BACKUP_DIR/deployment-history.log"
+    
+    # Stop current service
+    log "Stopping current service..."
+    systemctl stop "$SERVICE_NAME" || warn "Service was not running"
+    
+    # Pull new image
+    log "Pulling new image: $new_image"
+    if ! docker pull "$new_image"; then
+        error "Failed to pull image: $new_image"
+    fi
+    
+    # Remove old container
+    log "Removing old container..."
+    docker stop "$CONTAINER_NAME" 2>/dev/null || true
+    docker rm "$CONTAINER_NAME" 2>/dev/null || true
+    
+    # Start service with new version
+    log "Starting service with new version..."
+    systemctl start "$SERVICE_NAME"
+    
+    # Wait and verify
+    sleep 5
+    if systemctl is-active --quiet "$SERVICE_NAME"; then
+        log "Successfully deployed version $version"
+        show_current_version
+    else
+        error "Failed to start service with new version. Check logs with: journalctl -u $SERVICE_NAME"
+    fi
+}
+
+rollback_version() {
+    local last_version_file="$BACKUP_DIR/last-version.txt"
+    
+    if [[ ! -f "$last_version_file" ]]; then
+        error "No previous version recorded. Cannot rollback."
+    fi
+    
+    local previous_image=$(cat "$last_version_file")
+    local previous_version=$(echo "$previous_image" | cut -d: -f2)
+    
+    log "Rolling back to previous version: $previous_image"
+    
+    # Confirm rollback
+    read -p "Rollback to $previous_image? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log "Rollback cancelled"
+        return 0
+    fi
+    
+    deploy_version "$previous_version"
 }
 
 service_status() {
@@ -281,6 +421,20 @@ show_restic_logs() {
 
 # Main script logic
 case "${1:-help}" in
+    "current-version"|"version")
+        show_current_version
+        ;;
+    "list-versions"|"versions")
+        list_available_versions
+        ;;
+    "deploy")
+        check_root
+        deploy_version "${2:-}"
+        ;;
+    "rollback")
+        check_root
+        rollback_version
+        ;;
     "restart")
         check_root
         restart_service
