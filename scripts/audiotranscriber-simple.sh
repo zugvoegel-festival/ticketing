@@ -10,13 +10,29 @@ CONTAINER_NAME="audiotranscriber-pwa"
 DATA_DIR="/var/lib/audiotranscriber-pwa/data"
 BACKUP_DIR="/var/backups/audiotranscriber-pwa"
 
-# Colors for output
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BLUE='\033[0;34m'
-BOLD='\033[1m'
-NC='\033[0m' # No Color
+# Color detection function
+setup_colors() {
+    if [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]]; then
+        GREEN='\033[0;32m'
+        YELLOW='\033[1;33m'
+        RED='\033[0;31m'
+        BLUE='\033[0;34m'
+        CYAN='\033[0;36m'
+        BOLD='\033[1m'
+        NC='\033[0m' # No Color
+    else
+        GREEN=''
+        YELLOW=''
+        RED=''
+        BLUE=''
+        CYAN=''
+        BOLD=''
+        NC=''
+    fi
+}
+
+# Initialize colors
+setup_colors
 
 # Simple logging functions
 log() {
@@ -41,39 +57,37 @@ success() {
 }
 
 show_help() {
-    cat << EOF
-${BOLD}Audio Transcriber Admin Script${NC}
-
-${BOLD}Usage:${NC} $(basename "$0") <command>
-
-${BOLD}Service Management:${NC}
-    status      Show service status and health
-    restart     Restart the service
-    logs        Show recent logs
-    logs-live   Follow logs in real-time
-    health      Quick health check
-
-${BOLD}Backup & Restore:${NC}
-    backup      Create local backup of data
-    restore     Restore from backup (interactive)
-    backup-list List available backups
-
-${BOLD}Version Management:${NC}
-    version     Show current image version
-    deploy      Deploy new version (requires NixOS rebuild)
-
-${BOLD}Examples:${NC}
-    $(basename "$0") status
-    $(basename "$0") restart
-    $(basename "$0") logs-live
-    $(basename "$0") backup
-
-${BOLD}Notes:${NC}
-    • Version changes require updating configuration.nix and running deploy.sh
-    • This script handles operational tasks, NixOS handles configuration
-    • Always check status after making changes
-
-EOF
+    echo -e "${BOLD}Audio Transcriber Admin Script${NC}"
+    echo ""
+    echo -e "${BOLD}Usage:${NC} $(basename "$0") <command>"
+    echo ""
+    echo -e "${BOLD}Service Management:${NC}"
+    echo "    status      Show service status and health"
+    echo "    restart     Restart the service"
+    echo "    logs        Show recent logs"
+    echo "    logs-live   Follow logs in real-time"
+    echo "    health      Quick health check"
+    echo ""
+    echo -e "${BOLD}Backup & Restore:${NC}"
+    echo "    backup      Create local backup of data"
+    echo "    restore     Restore from backup (interactive)"
+    echo "    backup-list List available backups"
+    echo ""
+    echo -e "${BOLD}Version Management:${NC}"
+    echo "    version     Show current image version"
+    echo "    deploy      Deploy new version (requires NixOS rebuild)"
+    echo ""
+    echo -e "${BOLD}Examples:${NC}"
+    echo "    $(basename "$0") status"
+    echo "    $(basename "$0") restart"
+    echo "    $(basename "$0") logs-live"
+    echo "    $(basename "$0") backup"
+    echo ""
+    echo -e "${BOLD}Notes:${NC}"
+    echo "    • Version changes require updating configuration.nix and running deploy.sh"
+    echo "    • This script handles operational tasks, NixOS handles configuration"
+    echo "    • Always check status after making changes"
+    echo ""
 }
 
 # Check if running as root for operations that need it
