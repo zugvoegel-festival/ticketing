@@ -34,14 +34,14 @@ in
       acmeMail = "webmaster@zugvoegelfestival.org";
       nginxPort = 3301;
       mysqlPort = 3302;
-      apiPort = 3302;
+      apiPort = 3304;
       frontendPort = 3303;
     };
 
     services.audiotranscriber = {
       enable = true;
       host = "audiotranscriber-test.loco.vision";
-      app-image = "manulinger/audio-transcriber:latest";
+      app-image = "manulinger/audio-transcriber:test";
       acmeMail = "webmaster@zugvoegelfestival.org";
       port = 8001;
     };
