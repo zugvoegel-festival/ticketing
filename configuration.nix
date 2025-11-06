@@ -154,6 +154,9 @@ in
     (pkgs.writeScriptBin "audiotranscriber-admin" (
       builtins.readFile ./scripts/audiotranscriber-admin.sh
     ))
+    (pkgs.writeScriptBin "audiotranscriber-simple" (
+      builtins.readFile ./scripts/audiotranscriber-simple.sh
+    ))
   ];
 
   # Time zone and internationalisation
