@@ -74,19 +74,23 @@ show_help() {
     echo "    backup-list List available backups"
     echo ""
     echo -e "${BOLD}Version Management:${NC}"
-    echo "    version     Show current image version"
-    echo "    deploy      Deploy new version (requires NixOS rebuild)"
+    echo "    version        Show current image version"
+    echo "    deploy <ver>   Deploy specific version (auto-commit & deploy)"
+    echo "    rollback       Rollback to previous version"
     echo ""
     echo -e "${BOLD}Examples:${NC}"
     echo "    $(basename "$0") status"
     echo "    $(basename "$0") restart"
     echo "    $(basename "$0") logs-live"
+    echo "    $(basename "$0") deploy v1.2.3"
+    echo "    $(basename "$0") rollback"
     echo "    $(basename "$0") backup"
     echo ""
     echo -e "${BOLD}Notes:${NC}"
-    echo "    • Version changes require updating configuration.nix and running deploy.sh"
-    echo "    • This script handles operational tasks, NixOS handles configuration"
-    echo "    • Always check status after making changes"
+    echo "    • Version deploy sets global systemd environment variable"
+    echo "    • Changes persist across NixOS deployments"
+    echo "    • Rollback restores the previous version from backup"
+    echo "    • Always verify deployment with status/health commands"
     echo ""
 }
 
@@ -289,10 +293,139 @@ show_version() {
         echo "No container running"
     fi
     
+    # Show configured version from environment
+    local env_version=$(systemctl show-environment | grep "AUDIOTRANSCRIBER_VERSION=" | cut -d'=' -f2)
+    if [[ -n "$env_version" ]]; then
+        echo "Configured version: $env_version (from environment)"
+    else
+        echo "Configured version: test (default)"
+    fi
+    
     echo ""
-    info "To change version:"
-    echo "  1. Update 'app-image' in configuration.nix"
-    echo "  2. Run ./deploy.sh to deploy changes"
+    info "Version management commands:"
+    echo "  ./$(basename $0) deploy <version>  - Deploy specific version"
+    echo "  ./$(basename $0) rollback         - Rollback to previous version"
+}
+
+# Deploy specific version
+deploy_version() {
+    local new_version="$1"
+    
+    if [[ -z "$new_version" ]]; then
+        error "Version required. Usage: ./$(basename $0) deploy <version>"
+        return 1
+    fi
+    
+    echo -e "${BOLD}Deploying Version: $new_version${NC}"
+    echo "================================="
+    
+    # Backup current version
+    local current_version=$(systemctl show-environment | grep "AUDIOTRANSCRIBER_VERSION=" | cut -d'=' -f2)
+    if [[ -z "$current_version" ]]; then
+        current_version="test"  # default fallback
+    fi
+    echo "Previous version: $current_version" > .version_backup
+    info "Backed up current version: $current_version"
+    
+    # Set new version in global environment
+    info "Setting global environment variable..."
+    systemctl set-environment AUDIOTRANSCRIBER_VERSION="$new_version"
+    success "Set AUDIOTRANSCRIBER_VERSION=$new_version in systemd environment"
+    
+    # Restart the service to pick up new version
+    info "Restarting service to apply new version..."
+    systemctl restart docker-audiotranscriber-pwa.service
+    
+    success "Version deployment completed!"
+    echo ""
+    info "Waiting 15 seconds for service to start..."
+    sleep 15
+    
+    # Verify deployment
+    info "Verifying deployment..."
+    if health_check_silent; then
+        success "Service is healthy after deployment ✓"
+        
+        # Show actual running version
+        local container_info=$(get_container_info)
+        local running_image=$(echo "$container_info" | cut -f1)
+        info "Running image: $running_image"
+    else
+        warning "Service health check failed - checking status..."
+        show_status
+        return 1
+    fi
+}
+
+# Silent health check for automated use
+health_check_silent() {
+    local container_info=$(get_container_info)
+    local container_id=$(echo "$container_info" | cut -f2)
+    local status=$(echo "$container_info" | cut -f3)
+    
+    if [[ "$container_id" != "not-found" && "$status" == "running" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Rollback to previous version
+rollback_version() {
+    echo -e "${BOLD}Rolling Back Version${NC}"
+    echo "==================="
+    
+    if [[ ! -f ".version_backup" ]]; then
+        error "No version backup found! Cannot rollback."
+        return 1
+    fi
+    
+    local previous_version=$(cat .version_backup | grep "Previous version:" | cut -d' ' -f3)
+    
+    if [[ -z "$previous_version" ]]; then
+        error "Could not determine previous version from backup."
+        return 1
+    fi
+    
+    info "Rolling back to version: $previous_version"
+    
+    # Set previous version in global environment
+    if [[ "$previous_version" == "test" ]]; then
+        # Remove environment variable to use default
+        info "Removing environment override to use default version..."
+        systemctl unset-environment AUDIOTRANSCRIBER_VERSION
+        success "Removed AUDIOTRANSCRIBER_VERSION from systemd environment"
+    else
+        # Set to previous version
+        systemctl set-environment AUDIOTRANSCRIBER_VERSION="$previous_version"
+        success "Set AUDIOTRANSCRIBER_VERSION=$previous_version in systemd environment"
+    fi
+    
+    # Restart service to apply rollback
+    info "Restarting service to apply rollback..."
+    systemctl restart docker-audiotranscriber-pwa.service
+    
+    success "Rollback completed successfully!"
+    rm -f .version_backup
+    
+    echo ""
+    info "Waiting 15 seconds for service to start..."
+    sleep 15
+    
+    # Verify rollback
+    info "Verifying rollback..."
+    if health_check_silent; then
+        success "Service is healthy after rollback ✓"
+        
+        # Show actual running version
+        local container_info=$(get_container_info)
+        local running_image=$(echo "$container_info" | cut -f1)
+        info "Running image: $running_image"
+    else
+        warning "Service health check failed - checking status..."
+        show_status
+        return 1
+    fi
 }
 
 # Deploy info
@@ -451,7 +584,14 @@ case "${1:-help}" in
         show_version
         ;;
     "deploy")
-        deploy_info
+        if [[ -n "$2" ]]; then
+            deploy_version "$2"
+        else
+            deploy_info
+        fi
+        ;;
+    "rollback"|"rb")
+        rollback_version
         ;;
     "backup")
         create_backup

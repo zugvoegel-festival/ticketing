@@ -41,7 +41,7 @@ in
     services.audiotranscriber = {
       enable = true;
       host = "audiotranscriber-test.loco.vision";
-      app-image = "manulinger/audio-transcriber:test";
+      app-image = "manulinger/audio-transcriber:${builtins.getEnv "AUDIOTRANSCRIBER_VERSION" or "test"}";
       acmeMail = "webmaster@zugvoegelfestival.org";
       port = 8001;
     };
@@ -151,12 +151,6 @@ in
   # System packages and admin scripts
   environment.systemPackages = [
     pkgs.git
-    (pkgs.writeScriptBin "audiotranscriber-admin" (
-      builtins.readFile ./scripts/audiotranscriber-admin.sh
-    ))
-    (pkgs.writeScriptBin "audiotranscriber-simple" (
-      builtins.readFile ./scripts/audiotranscriber-simple.sh
-    ))
   ];
 
   # Time zone and internationalisation
