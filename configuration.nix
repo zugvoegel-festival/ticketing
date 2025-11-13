@@ -43,7 +43,7 @@ in
       host = "audiotranscriber-test.loco.vision";
       app-image = 
         let envVersion = builtins.getEnv "AUDIOTRANSCRIBER_VERSION";
-        in "manulinger/audio-transcriber:${if envVersion != "" then envVersion else "test"}";
+        in "manulinger/audio-transcriber:test";
       acmeMail = "webmaster@zugvoegelfestival.org";
       port = 8001;
     };
