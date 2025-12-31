@@ -122,18 +122,9 @@
                         "type": "prometheus",
                         "uid": "PBFA97CFB590B2093"
                     },
-                    "expr": "node_systemd_unit_state{name=\"docker-audiotranscriber-pwa.service\", state=\"active\"}",
-                    "legendFormat": "Audio Transcriber",
-                    "refId": "D"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "PBFA97CFB590B2093"
-                    },
                     "expr": "node_systemd_unit_state{name=\"docker-postgresql.service\", state=\"active\"}",
                     "legendFormat": "PostgreSQL",
-                    "refId": "E"
+                    "refId": "D"
                 },
                 {
                     "datasource": {
@@ -142,7 +133,7 @@
                     },
                     "expr": "node_systemd_unit_state{name=\"docker-redis.service\", state=\"active\"}",
                     "legendFormat": "Redis",
-                    "refId": "F"
+                    "refId": "E"
                 }
             ],
             "title": "Docker Services Status",

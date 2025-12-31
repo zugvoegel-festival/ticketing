@@ -39,7 +39,7 @@ usage() {
     echo "Examples:"
     echo "  $0 status                  # Show status of all backup services"
     echo "  $0 backup pretix-db        # Backup pretix database"
-    echo "  $0 list-snapshots minio    # List MinIO backup snapshots"
+    echo "  $0 list-snapshots pretix-db    # List pretix-db backup snapshots"
     echo "  $0 restore pretix-data latest /tmp/restore  # Restore pretix data"
 }
 

@@ -1,10 +1,143 @@
 # Development Plan: ticketing (main branch)
 
 *Generated on 2025-10-01 by Vibe Feature MCP*
-*Workflow: [minor](https://mrsimpson.github.io/responsible-vibe-mcp/workflows/minor)*
+*Workflow: [greenfield](https://mrsimpson.github.io/responsible-vibe-mcp/workflows/greenfield)*
 
 ## Goal
-Check all modules for port configuration and expose them as configurable options in the main configuration to provide centralized port management.
+Comprehensive analysis and documentation of the ticketing repository - a NixOS-based infrastructure project for event management services including ticketing, volunteer management, task organization, and supporting infrastructure.
+
+## Ideation
+
+### Repository Analysis Summary
+
+**Project Overview:**
+The ticketing repository is a comprehensive NixOS-based infrastructure-as-code project designed for the Zugvögel Festival event management. It provides a complete, production-ready deployment configuration for multiple services using Nix Flakes and declarative system configuration.
+
+**Core Technology Stack:**
+- **Base OS**: NixOS (declarative, reproducible system configuration)
+- **Deployment**: Nix Flakes with nixos-anywhere for infrastructure-as-code
+- **Secrets Management**: sops-nix for encrypted configuration
+- **Containerization**: Docker with custom images for services
+- **Monitoring**: Prometheus + Grafana + Loki stack
+- **Web Server**: Nginx with automatic SSL certificate management (Let's Encrypt)
+
+**Service Modules Analysis:**
+
+1. **Pretix Module** (`modules/pretix/`)
+   - Purpose: Professional event ticketing system with payment processing
+   - Technology: Docker container (custom image: `manulinger/zv-ticketing:pretix-custom-cliques`)
+   - Dependencies: PostgreSQL, Redis
+   - Port: 12345 (configurable via `port` option)
+   - Features: SSL/TLS via Let's Encrypt, persistent data storage, custom configuration
+
+2. **Schwarmplaner Module** (`modules/schwarmplaner/`)
+   - Purpose: Custom volunteer shift planning and management
+   - Technology: Multiple Docker containers (frontend, API, nginx, MySQL)
+   - Components:
+     - Frontend: Port 3303 (default)
+     - API: Port 3304 (default)
+     - Nginx: Port 3301 (default)
+     - MySQL: Port 3302 (default)
+   - Features: Separate API host configuration, SSL/TLS, database persistence
+
+3. **Vikunja Module** (`modules/vikunja/`)
+   - Purpose: Task management and project organization
+   - Technology: Native NixOS service (`services.vikunja`)
+   - Port: SMTP port 587 (configurable)
+   - Features: Email notifications, custom branding, registration control
+
+4. **Audio Transcriber Module** (`modules/audiotranscriber-pwa/`)
+   - Purpose: Audio transcription service for accessibility
+   - Technology: Docker container
+   - Port: 8001 (configurable via `port` option)
+   - Features: Large file upload support (1024M), persistent data storage
+
+5. **MinIO Module** (`modules/minio/`)
+   - Purpose: S3-compatible object storage for file management
+   - Technology: Native NixOS service (`services.minio`)
+   - Ports: 9000 (API), 9001 (Console) - both configurable
+   - Features: Separate console host, SSL/TLS, persistent storage
+
+6. **Monitoring Module** (`modules/monitoring/`)
+   - Purpose: Complete observability stack
+   - Components:
+     - Loki: Log aggregation (port 3100)
+     - Grafana: Dashboards and visualization (port 3000)
+     - Prometheus: Metrics collection (port 9090)
+     - Promtail: Log collection (port 9080)
+   - Features: Pre-configured dashboards, automatic datasource provisioning, system metrics
+
+7. **Backup Module** (`modules/backup/`)
+   - Purpose: Comprehensive backup solution with encryption and remote storage
+   - Technology: Restic with S3 backend
+   - Features: 
+     - Database backups (PostgreSQL, MySQL)
+     - File backups with exclusion patterns
+     - Encrypted backups
+     - Configurable schedules per service
+     - Remote S3 storage (Backblaze B2)
+
+8. **Bank Automation Module** (`modules/bank-automation/`)
+   - Purpose: Automated bank transaction processing and reconciliation
+   - Technology: Custom Nix package from flake input
+   - Features: Scheduled execution (4 times daily), systemd service
+
+**Repository Structure:**
+```
+ticketing/
+├── configuration.nix          # Main NixOS configuration
+├── flake.nix                  # Nix Flakes definition
+├── hardware-configuration.nix # Hardware-specific config
+├── modules/                    # Service modules
+│   ├── pretix/
+│   ├── schwarmplaner/
+│   ├── vikunja/
+│   ├── audiotranscriber-pwa/
+│   ├── minio/
+│   ├── monitoring/
+│   ├── backup/
+│   └── bank-automation/
+├── secrets/
+│   └── secrets.yaml           # SOPS-encrypted secrets
+├── scripts/                    # Utility scripts
+│   ├── backup-restore.sh
+│   ├── audiotranscriber-admin.sh
+│   └── audiotranscriber-simple.sh
+├── docs/
+│   └── BACKUP.md              # Backup documentation
+└── deploy.sh                   # Deployment script
+```
+
+**Key Architectural Patterns:**
+- All modules follow `zugvoegel.services.<servicename>` namespace pattern
+- Modules automatically exported via flake.nix from `modules/` directory
+- Consistent use of SOPS for secrets management
+- Docker networking via custom bridge networks per service
+- Nginx reverse proxy with automatic SSL/TLS for all web services
+- Systemd service management for orchestration
+
+**Configuration Management:**
+- Central configuration in `configuration.nix`
+- Service-specific options exposed per module
+- Secrets managed via sops-nix with encrypted YAML
+- Port configuration varies: some modules have configurable ports, others use hardcoded values
+
+**Deployment:**
+- Supports fresh server deployment via nixos-anywhere
+- Supports existing NixOS server deployment via nixos-rebuild
+- Target system: `pretix-server-01` (x86_64-linux)
+
+**Current State:**
+- Production-ready infrastructure
+- Comprehensive service coverage
+- Well-structured module system
+- Good separation of concerns
+- Documentation exists in README.md
+
+**Documentation Status:**
+- ✅ Architecture documentation: Linked to README.md (comprehensive)
+- ✅ Requirements documentation: Placeholder (not maintained separately)
+- ✅ Design documentation: Placeholder (not maintained separately)
 
 ## Explore
 ### Tasks
@@ -20,51 +153,37 @@ Check all modules for port configuration and expose them as configurable options
 
 **Current Port Configuration Status:**
 
-1. **MinIO Module** ✅ Already has port options
-   - `port = 9000` (API)
-   - `consolePort = 9001` (Console)
-   - **Status**: Well implemented
-
-2. **Monitoring Module** ❌ Hardcoded ports  
+1. **Monitoring Module** ❌ Hardcoded ports  
    - Grafana: `3000`
    - Loki: `3100` 
    - Prometheus: `9090`
    - Promtail: `9080`
    - **Status**: Needs port options
 
-3. **Pretix Module** ❌ Hardcoded port
+2. **Pretix Module** ❌ Hardcoded port
    - Docker container: `"12345:80"`
    - **Status**: Needs port option
 
-4. **Schwarmplaner Module** ❌ Hardcoded ports
+3. **Schwarmplaner Module** ❌ Hardcoded ports
    - Nginx: `"90:80"`
    - MySQL: `"3306:3306"`
    - API: `"3000:3000"`
    - Frontend: `"8000:8000"`
    - **Status**: Needs multiple port options
 
-5. **Audio Transcriber Module** ❌ Hardcoded port
-   - App: `"8001:3000"`
-   - **Status**: Needs port option
-
-6. **Vikunja Module** ❌ Hardcoded port
-   - SMTP: `port = 587`
-   - **Status**: Needs port option
-
-7. **Bank Automation Module** ✅ No exposed ports
+4. **Bank Automation Module** ✅ No exposed ports
    - **Status**: No changes needed
 
-8. **Backup Module** ✅ No exposed ports
+5. **Backup Module** ✅ No exposed ports
    - **Status**: No changes needed
 
 **Summary:**
-- **5 modules** need port configuration options added
-- **2 modules** already handle ports correctly  
+- **3 modules** need port configuration options added
 - **2 modules** don't expose ports
 
 ### Port Configuration Design
 
-**Approach**: Add `port` (and additional port options where needed) to each module following the MinIO pattern.
+**Approach**: Add `port` (and additional port options where needed) to each module.
 
 **Design Pattern:**
 ```nix
@@ -99,12 +218,6 @@ someServicePort = mkOption {
    - `mysqlPort = 3306`
    - `apiPort = 3000`
    - `frontendPort = 8000`
-
-4. **Audio Transcriber Module**: Add 1 port option
-   - `port = 8001`
-
-5. **Vikunja Module**: Add 1 port option
-   - `smtpPort = 587`
 
 **Benefits:**
 - Centralized port management in configuration.nix
@@ -211,8 +324,6 @@ options.zugvoegel.services.monitoring = {
 - [ ] Add port options to monitoring module
 - [ ] Add port option to pretix module  
 - [ ] Add port options to schwarmplaner module
-- [ ] Add port option to audiotranscriber module
-- [ ] Add port option to vikunja module
 - [ ] Update configuration references to use new port variables
 - [ ] Test all modules for syntax correctness
 - [ ] Update documentation with port configuration examples
@@ -448,7 +559,7 @@ The monitoring stack is ready for deployment and will provide comprehensive obse
 - Modules follow pattern: `config.zugvoegel.services.<servicename>`
 - All modules expose enable option and service-specific configuration
 - Services are imported via flake.nix automatically from modules/ directory
-- Examples: pretix, audiotranscriber, vikunja, schwarmplaner, minio, backup
+- Examples: pretix, schwarmplaner, backup
 
 **NixOS Native Services Available:**
 - `services.loki.*` - Full native Loki service support

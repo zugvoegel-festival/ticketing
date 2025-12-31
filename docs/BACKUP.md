@@ -17,8 +17,6 @@ The backup system is now organized around **individual services**, each with its
 | `pretix-db` | Database | PostgreSQL database dump | 02:30 | `zv-backups-pretix-db` |
 | `pretix-data` | Files | Pretix application data | 03:00 | `zv-backups-pretix-data` |
 | `schwarmplaner-db` | Database | MySQL database dump | 02:45 | `zv-backups-schwarmplaner-db` |
-| `audiotranscriber` | Files | Audio transcriber data | 03:15 | `zv-backups-audiotranscriber` |
-| `minio` | Files | MinIO object storage data | 03:30 | `zv-backups-minio` |
 
 ## Benefits of Individual Service Backups
 
@@ -46,16 +44,13 @@ The `scripts/backup-restore.sh` script provides easy management:
 ./scripts/backup-restore.sh status pretix-db
 
 # Run backup manually for a service
-./scripts/backup-restore.sh backup minio
+./scripts/backup-restore.sh backup pretix-db
 
 # List available snapshots for a service
 ./scripts/backup-restore.sh list-snapshots pretix-data
 
 # Restore a specific snapshot
 ./scripts/backup-restore.sh restore pretix-data latest /tmp/restore-pretix
-
-# Initialize a new repository (if needed)
-./scripts/backup-restore.sh init audiotranscriber
 ```
 
 ### Direct systemctl Commands
@@ -67,10 +62,10 @@ Each service has its own systemd service and timer:
 systemctl start restic-backups-pretix-db.service
 
 # Check backup status
-systemctl status restic-backups-minio.service
+systemctl status restic-backups-pretix-db.service
 
 # View backup logs
-journalctl -u restic-backups-audiotranscriber.service
+journalctl -u restic-backups-pretix-db.service
 
 # List timers and next runs
 systemctl list-timers restic-backups-*.timer
@@ -179,7 +174,7 @@ All backups are systemd services with timers, providing:
 
 ```bash
 # Check all backup service statuses
-for service in pretix-db pretix-data schwarmplaner-db audiotranscriber minio; do
+for service in pretix-db pretix-data schwarmplaner-db; do
     echo "=== $service ==="
     systemctl status restic-backups-$service.service --no-pager -l | head -10
 done
@@ -198,13 +193,13 @@ To add a new service to backup:
 
 1. **Add to configuration.nix**:
    ```nix
-   services.backup.services.vikunja-db = {
+   services.backup.services.new-service = {
      enable = true;
-     type = "database";
-     dbType = "postgresql";
-     containerName = "vikunja-db";
-     dbUser = "vikunja";
-     dumpPath = "/var/lib/backups/vikunja-db";
+     type = "database";  # or "files"
+     dbType = "postgresql";  # if type is "database"
+     containerName = "new-service-db";
+     dbUser = "newuser";
+     dumpPath = "/var/lib/backups/new-service-db";
      schedule = "02:15";
    };
    ```
@@ -216,7 +211,7 @@ To add a new service to backup:
 
 3. **Initialize the repository**:
    ```bash
-   ./scripts/backup-restore.sh init vikunja-db
+   ./scripts/backup-restore.sh init new-service
    ```
 
 ## Security Notes

@@ -13,11 +13,6 @@ in
   zugvoegel = {
     services.bank-automation.enable = false;
 
-    services.vikunja = {
-      enable = true;
-      smtpPort = 587;
-    };
-
     services.pretix = {
       enable = true;
       host = "tickets.zugvoegelfestival.org";
@@ -36,25 +31,6 @@ in
       mysqlPort = 3302;
       apiPort = 3304;
       frontendPort = 3303;
-    };
-
-    services.audiotranscriber = {
-      enable = true;
-      host = "audiotranscriber-test.loco.vision";
-      app-image = 
-        let envVersion = builtins.getEnv "AUDIOTRANSCRIBER_VERSION";
-        in "manulinger/audio-transcriber:test";
-      acmeMail = "webmaster@zugvoegelfestival.org";
-      port = 8001;
-    };
-
-    services.minio = {
-      enable = true;
-      host = "minio-test.loco.vision";
-      consoleHost = "minio-console-test.loco.vision";
-      acmeMail = "webmaster@zugvoegelfestival.org";
-      port = 9000;
-      consolePort = 9001;
     };
 
     services.backup = {
@@ -100,31 +76,6 @@ in
           dumpPath = "/var/lib/backups/schwarmplaner-db";
           schedule = "02:45";
         };
-
-        # Audio Transcriber data backup
-        audiotranscriber-pwa = {
-          enable = true;
-          type = "files";
-          paths = [ "/var/lib/audiotranscriber-pwa/data" ];
-          excludePaths = [
-            "*/temp/*"
-            "*/processing/*"
-            "*.tmp"
-          ];
-          schedule = "03:15";
-        };
-
-        # MinIO data backup
-        minio = {
-          enable = true;
-          type = "files";
-          paths = [ "/var/lib/minio/data" ];
-          excludePaths = [
-            "*/.minio.sys/tmp/*"
-            "*/multipart/*"
-          ];
-          schedule = "03:30";
-        };
       };
     };
 
@@ -166,12 +117,10 @@ in
       80
       443
     ];
-    # Allow Docker containers to access MinIO
     firewall.trustedInterfaces = [
       "docker0"
       "br-+"
     ];
-    firewall.allowedTCPPorts = [ 9000 ];
     hostName = "pretix-server-01";
     interfaces.eth0.useDHCP = true;
   };

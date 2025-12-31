@@ -7,11 +7,8 @@ A comprehensive NixOS-based deployment for event management infrastructure, desi
 ### Core Services
 - **[Pretix](https://pretix.eu/)**: Professional event ticketing system with payment processing
 - **[Schwarmplaner](https://github.com/zugvoegel-festival/schwarmplaner)**: Custom volunteer shift planning and management
-- **[Vikunja](https://vikunja.io/)**: Task management and project organization
-- **[Audio Transcriber](https://github.com/zugvoegel-festival/audio-transcriber)**: Audio transcription service for accessibility
 
 ### Infrastructure & Storage
-- **[MinIO](https://min.io/)**: S3-compatible object storage for file management
 - **Bank Automation**: Automated bank transaction processing and reconciliation
 - **Automated Backup**: Comprehensive backup solution with encryption and remote storage
 
@@ -70,8 +67,6 @@ For SSL certificates and professional URLs, configure DNS records for your domai
 tickets.your-domain.com       → YOUR_SERVER_IP
 schwarmplaner.your-domain.com → YOUR_SERVER_IP
 api.your-domain.com          → YOUR_SERVER_IP
-minio.your-domain.com        → YOUR_SERVER_IP
-minio-console.your-domain.com → YOUR_SERVER_IP
 grafana.your-domain.com      → YOUR_SERVER_IP
 ```
 
@@ -84,11 +79,8 @@ nix-shell -p sops --run "sops secrets/secrets.yaml"
 ```
 
 The secrets file includes:
-- **MinIO**: Root credentials and access keys
 - **Pretix**: Email configuration and database settings  
-- **Vikunja**: SMTP settings for notifications
 - **Schwarmplaner**: Database and API authentication
-- **Audio Transcriber**: Service configuration
 - **Bank Automation**: Banking API credentials
 - **Backup**: Remote storage credentials and encryption keys
 
@@ -109,10 +101,6 @@ After deployment, the following services will be available:
 | **Pretix (Ticketing)** | `https://tickets.your-domain.com` | Event ticket sales and management |
 | **Schwarmplaner** | `https://schwarmplaner.your-domain.com` | Volunteer shift planning interface |
 | **Schwarmplaner API** | `https://api.your-domain.com` | REST API for volunteer management |
-| **Audio Transcriber** | `https://audiotranscriber.your-domain.com` | Audio transcription service |
-| **Vikunja** | `https://tasks.your-domain.com` | Task and project management |
-| **MinIO API** | `https://minio.your-domain.com` | S3-compatible object storage API |
-| **MinIO Console** | `https://minio-console.your-domain.com` | Web interface for MinIO management |
 | **Grafana** | `https://grafana.your-domain.com` | Monitoring dashboards |
 
 > **Note**: Replace `your-domain.com` with your actual domain. Without custom domains, services will be available on their respective ports.
@@ -209,8 +197,6 @@ systemctl start backup.service
 ### Service Dependencies
 - **Pretix**: PostgreSQL database, Redis cache, file storage
 - **Schwarmplaner**: MySQL database, API backend, frontend
-- **Vikunja**: PostgreSQL database, file storage
-- **MinIO**: Object storage, web console
 - **Monitoring**: System metrics, log collection, dashboards
 
 ### Data Flow
@@ -268,8 +254,6 @@ nixos-rebuild build --flake '.#pretix-server-01'
 
 ### Service Documentation
 - **[Pretix Docs](https://docs.pretix.eu/)**: Ticketing system administration
-- **[Vikunja Docs](https://vikunja.io/docs/)**: Task management setup
-- **[MinIO Docs](https://docs.min.io/)**: Object storage configuration
 - **[Grafana Docs](https://grafana.com/docs/)**: Monitoring and dashboards
 
 ## 🐛 Troubleshooting
