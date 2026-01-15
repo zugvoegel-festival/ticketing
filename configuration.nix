@@ -17,7 +17,7 @@ in
       enable = true;
       host = "tickets.zugvoegelfestival.org";
       instanceName = "Zugvoegel Ticketshop";
-      pretixImage = "manulinger/zv-ticketing:pretix-custom-cliques";
+      pretixImage = "manulinger/zv-ticketing:pretix";
       acmeMail = "webmaster@zugvoegelfestival.org";
       pretixDataPath = "/var/lib/pretix-data/data";
       port = 12345;
