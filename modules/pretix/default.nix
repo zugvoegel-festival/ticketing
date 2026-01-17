@@ -103,9 +103,16 @@ in
         '';
     };
 
-    systemd.services.docker-pretix.preStart = ''
-      mkdir -p ${cfg.pretixDataPath} && chown -R 15371:15371 ${cfg.pretixDataPath}
-    '';
+    systemd.services.docker-pretix.preStart =
+      let
+        dockercli = "${config.virtualisation.docker.package}/bin/docker";
+      in
+      ''
+        # Pull the latest image before starting
+        ${dockercli} pull ${cfg.pretixImage} || true
+        # Ensure data directory exists with correct permissions
+        mkdir -p ${cfg.pretixDataPath} && chown -R 15371:15371 ${cfg.pretixDataPath}
+      '';
 
     virtualisation.oci-containers = {
       backend = "docker"; # Podman is the default backend.
@@ -137,7 +144,10 @@ in
             ];
           environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
           ports = [ "${toString cfg.port}:80" ];
-          extraOptions = [ "--network=pretix-net" ];
+          extraOptions = [
+            "--network=pretix-net"
+            "--pull=always"
+          ];
         };
       };
     };
