@@ -158,7 +158,12 @@ in
       virtualHosts."${cfg.host}" = {
         enableACME = true;
         forceSSL = true;
-        locations."/".proxyPass = "http://localhost:90";
+        locations."/".proxyPass = "http://localhost:${toString cfg.nginxPort}";
+      };
+      virtualHosts."${cfg.apiHost}" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/".proxyPass = "http://localhost:${toString cfg.apiPort}";
       };
     };
   };
