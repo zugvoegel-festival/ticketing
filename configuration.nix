@@ -33,6 +33,14 @@ in
       frontendPort = 3303;
     };
 
+    services.wedding-catcher = {
+      enable = true;
+      host = "catch-a-wedding.loco.vision";
+      image = "manulinger/wedding-catcher:latest";
+      acmeMail = "webmaster@zugvoegelfestival.org";
+      port = 3305;
+    };
+
     services.backup = {
       enable = true;
       s3BaseUrl = "s3:https://s3.us-west-004.backblazeb2.com";
