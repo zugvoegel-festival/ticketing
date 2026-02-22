@@ -18,6 +18,29 @@ The backup system is now organized around **individual services**, each with its
 | `pretix-data` | Files | Pretix application data | 03:00 | `zv-backups-pretix-data` |
 | `schwarmplaner-db` | Database | MySQL database dump | 02:45 | `zv-backups-schwarmplaner-db` |
 
+## Secrets (where to set them)
+
+**All backup services use the same two secrets** — you do not set different secrets per backup. Configure them once in **`secrets/secrets.yaml`** (encrypted with SOPS).
+
+| Secret key              | Purpose | Format / content |
+|-------------------------|---------|-------------------|
+| **`backup-envfile`**    | S3/B2 API credentials for all backup repositories | Env-file format, one `KEY=value` per line. For Backblaze B2 S3 API use e.g. `AWS_ACCESS_KEY_ID=<application_key_id>` and `AWS_SECRET_ACCESS_KEY=<application_key>`. |
+| **`backup-passwordfile`** | Restic repository encryption password (same password for all backup repos in this setup) | Single line: the restic password string, no key name. |
+
+**How to add or edit:**
+
+```bash
+# Edit encrypted secrets (creates/updates the keys)
+sops secrets/secrets.yaml
+```
+
+Add or edit these two keys in the YAML (values will be encrypted on save):
+
+- **`backup-envfile`**: Paste the env file content (e.g. `AWS_ACCESS_KEY_ID=...\nAWS_SECRET_ACCESS_KEY=...`).
+- **`backup-passwordfile`**: Paste the single restic password line.
+
+On the server, sops-nix decrypts them to `/run/secrets/backup-envfile` and `/run/secrets/backup-passwordfile`; the backup module uses those paths for every backup service.
+
 ## Benefits of Individual Service Backups
 
 1. **Independent Restores**: Restore only the service you need without affecting others

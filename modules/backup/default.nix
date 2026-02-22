@@ -228,10 +228,11 @@ in
       in
       builtins.listToAttrs (lib.mapAttrsToList createBackup enabledServices);
 
-    # Create a oneshot service to initialize all repositories on deployment
+    # Create a oneshot service to initialize all repositories on deployment.
+    # Not wantedBy multi-user.target so boot/deploy does not block on B2/S3.
+    # Started by timer 2 min after boot so repos are inited without blocking switch.
     systemd.services.restic-init-repositories = {
       description = "Initialize restic backup repositories";
-      wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
 
@@ -276,6 +277,14 @@ in
           ${builtins.concatStringsSep "\n" initCommands}
           echo "Repository initialization complete"
         '';
+    };
+
+    systemd.timers.restic-init-repositories = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "2min";
+        Unit = "restic-init-repositories.service";
+      };
     };
   };
 }

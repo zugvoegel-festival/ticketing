@@ -62,7 +62,7 @@ in
           "${cfg.dataPath}/data:/app/data"
           "${cfg.dataPath}/screenshots:/app/screenshots"
         ];
-        extraOptions = [ "--pull=always" ];
+        extraOptions = [ "--pull=always" "--platform=linux/amd64" ];
       };
     };
 

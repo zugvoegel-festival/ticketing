@@ -114,6 +114,11 @@ in
   };
 
   config = mkIf cfg.enable {
+    sops.secrets.grafana-secret-key = {
+      owner = "grafana";
+      mode = "0400";
+    };
+
     # Loki - Log aggregation
     services.loki = {
       enable = true;
@@ -177,6 +182,8 @@ in
             admin_user = cfg.grafanaAuth.adminUser;
             admin_password = "admin"; # TODO: Use SOPS secret file
             disable_initial_admin_creation = false;
+            # Read from SOPS-decrypted file so the key is not in the Nix store
+            secret_key = "\$__file{${config.sops.secrets.grafana-secret-key.path}}";
           }
           // optionalAttrs (cfg.grafanaAuth.adminEmail != null) { admin_email = cfg.grafanaAuth.adminEmail; };
         users = {

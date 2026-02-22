@@ -124,6 +124,8 @@ in
     firewall.interfaces.eth0.allowedTCPPorts = [
       80
       443
+      # 3305 = wedding-catcher (optional: remove when DNS is live and you only use HTTPS)
+      3305
     ];
     firewall.trustedInterfaces = [
       "docker0"
