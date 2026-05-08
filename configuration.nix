@@ -49,7 +49,7 @@ in
     };
 
     services.wedding-catcher = {
-      enable = true;
+      enable = false;
       host = "catch-a-wedding.loco.vision";
       image = "manulinger/wedding-catcher:latest";
       acmeMail = "webmaster@zugvoegelfestival.org";
@@ -153,8 +153,6 @@ in
     firewall.interfaces.eth0.allowedTCPPorts = [
       80
       443
-      # 3305 = wedding-catcher (optional: remove when DNS is live and you only use HTTPS)
-      3305
     ];
     firewall.trustedInterfaces = [
       "docker0"

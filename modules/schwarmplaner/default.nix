@@ -326,12 +326,16 @@ in
       openssh.authorizedKeys.keys = cfg.deployAuthorizedKeys;
     };
 
+    # Sudoers escapes:
+    #   `:` and `=` inside command args MUST be backslash-escaped (sudoers
+    #   treats them as tag/option separators). NixOS does not auto-escape
+    #   `security.sudo.extraRules.commands.command`, so we do it here.
     security.sudo.extraRules = mkIf (cfg.deployAuthorizedKeys != [ ]) [
       {
         users = [ "deploy" ];
         commands = [
           {
-            command = "${config.virtualisation.docker.package}/bin/docker pull manulinger/schwarmplaner:*";
+            command = ''${config.virtualisation.docker.package}/bin/docker pull manulinger/schwarmplaner\:*'';
             options = [ "NOPASSWD" ];
           }
           {
