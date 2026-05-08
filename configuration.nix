@@ -24,13 +24,28 @@ in
     };
     services.schwarmplaner = {
       enable = true;
-      host = "schwarmplaner.zugvoegelfestival.org";
-      apiHost = "api.zugvoegelfestival.org";
-      acmeMail = "webmaster@zugvoegelfestival.org";
-      nginxPort = 3301;
-      mysqlPort = 3302;
-      apiPort = 3304;
-      frontendPort = 3303;
+
+      # SSH pubkeys for the dedicated `deploy` user used by GitHub Actions
+      # workflows in the schwarmplaner repo. The private half lives as the
+      # SSH_PRIVATE_KEY repo secret.
+      deployAuthorizedKeys = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/42RUXxK9qOKr5yOjOL9rNpeEMuaTQ8zJjsHi5nRHa github-actions-schwarmplaner"
+      ];
+
+      instances = {
+        prod = {
+          host = "schwarmplaner.zugvoegelfestival.org";
+          app-image = "manulinger/schwarmplaner:prod-latest";
+          acmeMail = "webmaster@zugvoegelfestival.org";
+          port = 3303;
+        };
+        test = {
+          host = "test.schwarmplaner.zugvoegelfestival.org";
+          app-image = "manulinger/schwarmplaner:test-latest";
+          acmeMail = "webmaster@zugvoegelfestival.org";
+          port = 3313;
+        };
+      };
     };
 
     services.wedding-catcher = {
@@ -72,17 +87,31 @@ in
           schedule = "03:00";
         };
 
-        # Schwarmplaner MySQL database backup
-        schwarmplaner-db = {
+        # Schwarmplaner now ships a single Docker container with an
+        # SQLite file mounted at /var/lib/schwarmplaner-<env>/data. The
+        # daily file backups below replace the legacy MySQL dump.
+        schwarmplaner-prod = {
           enable = true;
-          type = "database";
-          dbType = "mysql";
-          containerName = "schwarmplaner-db";
-          dbUser = "root";
-          dbPassword = "HurraWirFliegen24";
-          dbName = "schwarmDatabase";
-          dumpPath = "/var/lib/backups/schwarmplaner-db";
+          type = "files";
+          paths = [ "/var/lib/schwarmplaner-prod/data" ];
+          excludePaths = [
+            "*.db-journal"
+            "*.db-wal"
+            "*.db-shm"
+          ];
           schedule = "02:45";
+        };
+
+        schwarmplaner-test = {
+          enable = true;
+          type = "files";
+          paths = [ "/var/lib/schwarmplaner-test/data" ];
+          excludePaths = [
+            "*.db-journal"
+            "*.db-wal"
+            "*.db-shm"
+          ];
+          schedule = "02:50";
         };
       };
     };
@@ -141,6 +170,10 @@ in
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIm11sPvZgi/QiLaB61Uil4bJzpoz0+AWH2CHH2QGiPm" # Netcup demo key github
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBGCmCMCN1BuYW2xCVTdXlNIILbJABp0MPgjc2rYMq9K" # Manu
   ];
+
+  # Note: the GitHub Actions key (github-actions-schwarmplaner) is NOT a root
+  # key. It is wired into a dedicated unprivileged "deploy" user with narrowly
+  # scoped sudoers via services.schwarmplaner.deployAuthorizedKeys.
 
   # Enable ssh
   services.openssh = {
