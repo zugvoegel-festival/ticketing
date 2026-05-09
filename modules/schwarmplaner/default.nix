@@ -326,32 +326,40 @@ in
       openssh.authorizedKeys.keys = cfg.deployAuthorizedKeys;
     };
 
-    # Sudoers escapes:
-    #   `:` and `=` inside command args MUST be backslash-escaped (sudoers
-    #   treats them as tag/option separators). NixOS does not auto-escape
-    #   `security.sudo.extraRules.commands.command`, so we do it here.
+    # Sudoers gotchas observed on NixOS 25.11 / sudo 1.9.17:
+    #   1. `:` and `=` inside command args MUST be backslash-escaped (sudoers
+    #      treats them as tag/option separators). NixOS does not auto-escape
+    #      `security.sudo.extraRules.commands.command`, so we do it here.
+    #   2. sudo on NixOS does NOT canonicalize symlinks when matching commands
+    #      against sudoers rules. So if we used `${pkgs.foo}/bin/foo` (a Nix
+    #      store path), a user invoking `sudo foo` (resolved via secure_path
+    #      to `/run/current-system/sw/bin/foo`, which is a SYMLINK to the Nix
+    #      store path) would NOT match — sudo prompts for a password.
+    #      Workaround: use the stable wrapper paths under
+    #      `/run/current-system/sw/bin/…`, which are exactly the paths sudo
+    #      sees post-secure_path-lookup.
     security.sudo.extraRules = mkIf (cfg.deployAuthorizedKeys != [ ]) [
       {
         users = [ "deploy" ];
         commands = [
           {
-            command = ''${config.virtualisation.docker.package}/bin/docker pull manulinger/schwarmplaner\:*'';
+            command = ''/run/current-system/sw/bin/docker pull manulinger/schwarmplaner\:*'';
             options = [ "NOPASSWD" ];
           }
           {
-            command = "${pkgs.systemd}/bin/systemctl restart docker-schwarmplaner-test.service";
+            command = "/run/current-system/sw/bin/systemctl restart docker-schwarmplaner-test.service";
             options = [ "NOPASSWD" ];
           }
           {
-            command = "${pkgs.systemd}/bin/systemctl restart docker-schwarmplaner-prod.service";
+            command = "/run/current-system/sw/bin/systemctl restart docker-schwarmplaner-prod.service";
             options = [ "NOPASSWD" ];
           }
           {
-            command = "${deployBackupScript}/bin/schwarmplaner-deploy-backup";
+            command = "/run/current-system/sw/bin/schwarmplaner-deploy-backup";
             options = [ "NOPASSWD" ];
           }
           {
-            command = "${deployBackupScript}/bin/schwarmplaner-deploy-backup *";
+            command = "/run/current-system/sw/bin/schwarmplaner-deploy-backup *";
             options = [ "NOPASSWD" ];
           }
         ];
