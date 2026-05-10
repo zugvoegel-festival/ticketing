@@ -347,6 +347,15 @@ in
             options = [ "NOPASSWD" ];
           }
           {
+            # The schwarmplaner GitHub Actions workflows pass the fully
+            # qualified image (`docker.io/manulinger/schwarmplaner:<tag>`),
+            # so allow that variant too. Keeping both rules explicit instead
+            # of using a leading `*` wildcard avoids accidentally permitting
+            # `docker pull <attacker>/manulinger/schwarmplaner:foo`.
+            command = ''/run/current-system/sw/bin/docker pull docker.io/manulinger/schwarmplaner\:*'';
+            options = [ "NOPASSWD" ];
+          }
+          {
             command = "/run/current-system/sw/bin/systemctl restart docker-schwarmplaner-test.service";
             options = [ "NOPASSWD" ];
           }
