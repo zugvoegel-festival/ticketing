@@ -6,8 +6,11 @@
       "MCP(responsible-vibe-mcp:list_workflows)",
       "MCP(responsible-vibe-mcp:get_tool_info)",
       "Read(README.md)",
+      "Read(./docs/**)",
+      "Read(./AGENTS.md)",
       "Read(./.vibe/**)",
-      "Write(./.vibe/**)"
+      "Write(./.vibe/**)",
+      "Write(./docs/**)"
     ],
     "ask": [
       "Bash(*)",

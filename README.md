@@ -247,6 +247,7 @@ nixos-rebuild build --flake '.#pretix-server-01'
 
 ## 📚 Documentation
 
+- **This repo:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (codemap), [`docs/BACKUP.md`](docs/BACKUP.md) (restic), [`AGENTS.md`](AGENTS.md) (commands for tooling)
 - **[NixOS Manual](https://nixos.org/manual/nixos/stable/)**: Official NixOS documentation
 - **[Nix Flakes](https://nixos.wiki/wiki/Flakes)**: Modern Nix package management
 - **[sops-nix](https://github.com/Mic92/sops-nix)**: Secrets management
