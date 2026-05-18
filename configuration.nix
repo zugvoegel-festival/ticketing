@@ -48,6 +48,25 @@ in
       };
     };
 
+    services.trees99 = {
+      enable = true;
+
+      # SSH pubkey for 99trees GitHub Actions (private key → SSH_PRIVATE_KEY secret).
+      # Generate: ssh-keygen -t ed25519 -C "github-actions-99trees" -f /tmp/99trees-deploy-key -N ""
+      deployAuthorizedKeys = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGCCjSkw16myEa5z5BW+Ol/0ACNFgXYC4JonMEpkXnaD github-actions-99trees"
+      ];
+
+      instances = {
+        prod = {
+          host = "trees.loco.vision";
+          app-image = "manulinger/99trees:prod-latest";
+          acmeMail = "webmaster@zugvoegelfestival.org";
+          port = 3323;
+        };
+      };
+    };
+
     services.wedding-catcher = {
       enable = false;
       host = "catch-a-wedding.loco.vision";
@@ -113,6 +132,30 @@ in
           ];
           schedule = "02:50";
         };
+
+        trees99-prod = {
+          enable = true;
+          type = "files";
+          paths = [ "/var/lib/99trees-prod/data" ];
+          excludePaths = [
+            "*.db-journal"
+            "*.db-wal"
+            "*.db-shm"
+          ];
+          schedule = "02:55";
+        };
+
+        trees99-test = {
+          enable = true;
+          type = "files";
+          paths = [ "/var/lib/99trees-test/data" ];
+          excludePaths = [
+            "*.db-journal"
+            "*.db-wal"
+            "*.db-shm"
+          ];
+          schedule = "03:05";
+        };
       };
     };
 
@@ -126,6 +169,7 @@ in
       lokiPort = 4001;
       prometheusPort = 4002;
       promtailPort = 4003;
+      openFirewall = false;
 
       # Authentication configuration
       grafanaAuth = {
@@ -169,15 +213,16 @@ in
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBGCmCMCN1BuYW2xCVTdXlNIILbJABp0MPgjc2rYMq9K" # Manu
   ];
 
-  # Note: the GitHub Actions key (github-actions-schwarmplaner) is NOT a root
-  # key. It is wired into a dedicated unprivileged "deploy" user with narrowly
-  # scoped sudoers via services.schwarmplaner.deployAuthorizedKeys.
+  # Note: GitHub Actions deploy keys (schwarmplaner, 99trees) are NOT root keys.
+  # They are wired into the shared unprivileged "deploy" user with narrowly
+  # scoped sudoers via services.schwarmplaner.deployAuthorizedKeys and
+  # services.trees99.deployAuthorizedKeys.
 
   # Enable ssh
   services.openssh = {
     enable = true;
     settings.PasswordAuthentication = false;
-    settings.PermitRootLogin = "yes";
+    settings.PermitRootLogin = "prohibit-password";
   };
 
   system.stateVersion = "23.05";

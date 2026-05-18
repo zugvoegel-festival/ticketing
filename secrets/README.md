@@ -8,6 +8,26 @@ time via sops-nix. Encryption recipients are defined in [`../.sops.yaml`](../.so
 nix-shell -p sops --run "sops secrets/secrets.yaml"
 ```
 
+## Grafana admin password
+
+Add a **single-line** key `grafana-admin-password` (plain password text, no YAML
+multiline block required). It is mounted for Grafana as
+`/run/secrets/grafana-admin-password` and referenced via Grafana’s `$__file{…}`
+mechanism — it must exist before `nixos-rebuild` when monitoring is enabled.
+
+## Pretix PostgreSQL password
+
+The Pretix and PostgreSQL containers both use [`pretix-envfile`](./secrets.yaml).
+Extend that env file (same secret, edit with `sops`) with:
+
+- `POSTGRES_PASSWORD=` — required by the official Postgres image (SCRAM auth).
+- `PRETIX_DATABASE_PASSWORD=` — same value; overrides `[database] password` per
+  [pretix config / env vars](https://docs.pretix.eu/en/latest/admin/config.html).
+
+**Existing installs** that previously used `trust` for Postgres: after you set a
+password, either set the password inside the DB to match (`ALTER USER postgres
+WITH PASSWORD '…';`) or plan a one-time volume reset if you cannot log in.
+
 ## Schwarmplaner cutover (one-time)
 
 When migrating schwarmplaner from the legacy 4-container MySQL stack to the
@@ -76,3 +96,51 @@ expects one SOPS env-file per instance (`schwarmplaner-prod-envfile`,
 
    GitHub Actions will build the image, push it to Docker Hub, SSH in, pull,
    and `systemctl restart docker-schwarmplaner-test.service`.
+
+## 99trees (Zugvögel field game)
+
+The NixOS module [`modules/99trees/default.nix`](../modules/99trees/default.nix)
+(`zugvoegel.services.trees99`) expects one SOPS env-file per instance:
+`99trees-prod-envfile`, `99trees-test-envfile`.
+
+1. **Add per-instance env-files** (edit with `sops secrets/secrets.yaml`):
+
+   ```yaml
+   99trees-prod-envfile: |
+     NUXT_SESSION_PASSWORD=<≥32 chars random>
+     NUXT_ADMIN_INIT_SECRET=<bootstrap secret>
+     NUXT_CREW_SESSION_PASSWORD=<≥32 chars random>
+     NUXT_ENVIRONMENT=production
+   99trees-test-envfile: |
+     NUXT_SESSION_PASSWORD=<≥32 chars random>
+     NUXT_ADMIN_INIT_SECRET=<bootstrap secret>
+     NUXT_CREW_SESSION_PASSWORD=<≥32 chars random>
+     NUXT_ENVIRONMENT=test
+   ```
+
+   Generate values: `openssl rand -base64 48 | tr -d '/=+' | head -c 48`
+
+2. **Deploy SSH key** — add the pubkey to
+   `zugvoegel.services.trees99.deployAuthorizedKeys` in `configuration.nix`
+   (replace the `TODO` placeholder). Private key → `SSH_PRIVATE_KEY` in the
+   99trees GitHub repo. The shared `deploy` user must already exist (from
+   schwarmplaner).
+
+3. **DNS** (before first deploy):
+
+   - `spiel.zugvoegelfestival.org` → server A record
+   - `test.spiel.zugvoegelfestival.org` → server A record
+
+4. **Host activation:**
+
+   ```bash
+   ./update-and-deploy.sh
+   ```
+
+5. **First image push** — from the 99trees repo, after GitHub secrets are set:
+
+   ```bash
+   bash .cursor/skills/release/scripts/release-test.sh
+   ```
+
+   See [`docs/DEPLOYMENT.md`](../../99trees/docs/DEPLOYMENT.md) in the 99trees repo.
