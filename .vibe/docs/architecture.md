@@ -6,31 +6,36 @@ NixOS flake for Zugvögel Festival infra: one host `pretix-server-01`, declarati
 
 ## Context and scope
 
-- **In scope:** NixOS modules, host config, backup, monitoring, Docker app stacks, deploy wiring for CI.
-- **Out of scope:** Application source (Pretix, Schwarmplaner, 99trees live in separate repos/images).
-- **External:** S3-compatible backup storage (e.g. B2), Let's Encrypt, GitHub Actions SSH deploy.
+- **In scope:** NixOS modules, host config, backup, monitoring, Docker app stacks (Pretix, Schwarmplaner, 99trees, Wedding catcher), CI deploy wiring.
+- **Out of scope:** Application source — services run from external Docker images and separate repos.
+- **External:** S3-compatible backup storage, Let's Encrypt, GitHub Actions SSH deploy.
 
 ## Building blocks
 
-| Layer | Location | Role |
-|-------|----------|------|
-| Host config | `configuration.nix`, `hardware-configuration.nix` | Enable services, hosts, ports, backup jobs |
-| Modules | `modules/*/default.nix` | Reusable NixOS service definitions |
-| Flake | `flake.nix` | Exports `nixosConfigurations` + auto-discovered `nixosModules` |
-| Secrets | `secrets/secrets.yaml` | Encrypted env files consumed by sops-nix |
+| Module | Role |
+|--------|------|
+| pretix | Ticketing stack: Docker + Postgres + Redis + nginx |
+| schwarmplaner | Multi-instance volunteer planning; CI via `deploy` user |
+| 99trees | Multi-instance field game; CI via shared `deploy` user |
+| backup | Per-service restic jobs + `backup-restore` helper |
+| monitoring | Grafana / Loki / Prometheus / Promtail (+ dashboards) |
+| bank-automation | Scheduled Pretix bank reconciliation (optional) |
+| wedding-catcher | Optional single-container app |
+
+Host wiring in `configuration.nix`; modules auto-exported from `flake.nix`.
 
 ## Runtime view
 
-Internet → nginx (80/443, ACME) → Docker services (Pretix, Schwarmplaner, 99trees, …). Restic timers push encrypted backups to S3. Monitoring stack collects metrics/logs locally or via nginx.
+Internet → nginx (ACME) → Docker services on localhost ports. Restic timers push encrypted backups to S3. Monitoring collects metrics/logs; public access via nginx when hosts configured.
 
 ## Crosscutting
 
-- All custom services: `config.zugvoegel.services.<name>`.
-- CI deploy: unprivileged `deploy` user with scoped sudo (Schwarmplaner, 99trees) — not root SSH keys.
-- Backup repo URL: `${s3BaseUrl}/${bucketPrefix}-${serviceName}`.
-- Firewall: public 80/443; Docker bridges often `trustedInterfaces`.
+- Service namespace: `config.zugvoegel.services.<name>`.
+- Secrets: sops-nix env files per service/instance; prefer password files over inline store values.
+- CI deploy: unprivileged `deploy` user (Schwarmplaner, 99trees) — not root SSH.
+- Public nginx vhosts: TLS via ACME plus security headers on proxy locations.
+- Backup URL pattern: `${s3BaseUrl}/${bucketPrefix}-${serviceName}`.
 
 ## Key decisions
 
-- Flake auto-imports every `modules/<name>/default.nix` via `readDir ./modules`.
-- Module READMEs hold per-service detail; this file holds cross-module view only.
+- Per-module detail in `modules/<name>/README.md`; CI apps use scoped `*-deploy-backup` helpers on PATH.

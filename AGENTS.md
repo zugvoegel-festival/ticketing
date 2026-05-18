@@ -30,5 +30,5 @@ docs/BACKUP.md         # human ops: restic restore flow
 ## Docs
 
 - `modules/README.md` — module index; per-module READMEs under `modules/<name>/`
-- `.vibe/docs/` — architecture, requirements, design, dependency graph
+- `.vibe/docs/` — architecture, requirements, design, dependency graph, deploy-flow
 - `docs/BACKUP.md` — restic layout, secrets keys, restore flow (human ops)

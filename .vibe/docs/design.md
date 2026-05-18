@@ -4,32 +4,36 @@
 
 - Standard args: `{ config, lib, pkgs, ... }`; bind `let cfg = config.zugvoegel.services.<name>; in`.
 - Options in `options.zugvoegel.services.<name>`; system config gated with `config = mkIf cfg.enable { … };`.
-- Match naming and style of neighboring modules (pretix, schwarmplaner).
+- Follow patterns of pretix (single stack) or schwarmplaner/99trees (multi-instance + CI).
 
 ## Secrets
 
-- One sops secret per env file (e.g. `pretix-envfile`, `schwarmplaner-prod-envfile`).
-- Reference via `config.sops.secrets.<name>.path` in systemd/Docker config.
+- One sops env file per service or instance (e.g. `pretix-envfile`, `99trees-prod-envfile`).
+- Mount via `config.sops.secrets.<name>.path` in Docker/systemd config.
 
 ## Docker services
 
-- Use `virtualisation.oci-containers` with dedicated bridge networks per app family.
-- Per-instance data under `/var/lib/<app>-<instance>/`; pre-deploy backups via scoped helper scripts on PATH.
+- `virtualisation.oci-containers` with per-app bridge networks (`pretix-net`, `schwarmplaner-net`, `99trees-net`).
+- Data under `/var/lib/<app>-<instance>/`; init units create dirs before container start.
+
+## CI deploy pattern
+
+- Shared `deploy` user receives `deployAuthorizedKeys` from Schwarmplaner and 99trees modules.
+- Scoped sudo for docker pull, systemctl restart, and `*-deploy-backup` helpers only.
 
 ## nginx
 
-- Virtual hosts defined in modules when `host` option is set; proxy to localhost service port.
-- ACME email from module or host config.
+- Virtual hosts when `host` set; proxy to localhost port; security headers on public locations; ACME from module or host config.
 
 ## Documentation layers
 
 - Commands/invariants → `AGENTS.md`
-- Per-module options and files → `modules/<name>/README.md`
+- Per-module files and options → `modules/<name>/README.md`
 - Cross-module architecture → `.vibe/docs/`
-- Human backup/restore procedures → `docs/BACKUP.md`
+- Human backup/restore → `docs/BACKUP.md`
 
 ## Quality attributes
 
 - **Reproducibility:** flake-pinned inputs, declarative host config.
-- **Security:** encrypted secrets, least-privilege deploy user, TLS by default for public hosts.
-- **Operability:** restic timers, monitoring stack, deploy scripts at repo root.
+- **Security:** encrypted secrets (prefer file paths over Nix store copies), least-privilege deploy user, TLS + nginx security headers, monitoring on 127.0.0.1 by default.
+- **Operability:** restic timers, monitoring dashboards, `./deploy.sh` at repo root.

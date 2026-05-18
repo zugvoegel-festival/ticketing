@@ -19,100 +19,53 @@ native files. Use symlinks where duplication is unavoidable.
 
 ---
 
-## AGENTS.md: required sections
+## AGENTS.md: required sections (ticketing / NixOS flake)
 
-### Section 1: Commands (highest priority — AI needs these immediately)
+### Section 1: Commands
 
 ```markdown
 ## Commands
 
-**Build:** `npm run build`
-**Test:** `npm test` or `pytest tests/`
-**Lint:** `npm run lint` / `ruff check .`
-**Type check:** `npx tsc --noEmit`
-**Dev server:** `npm run dev` (port 3000)
-**Single test:** `pytest tests/path/test_file.py::test_name -v`
+- **Deploy (scripted host):** `./deploy.sh`
+- **Eval/build system locally:** `nixos-rebuild build --flake '.#pretix-server-01'`
+- **Secrets:** `nix-shell -p sops --run "sops secrets/secrets.yaml"`
 ```
 
-Rules:
-- Exact commands only — no "run the build script"
-- Include the port for dev servers
-- Include how to run a single test (agents need this constantly)
-- Include any required env vars: `cp .env.example .env` if needed
-
----
+Rules: exact commands only; no guessed scripts.
 
 ### Section 2: Project structure (codemap)
 
 ```markdown
 ## Structure
 
-src/
-  api/        # HTTP handlers — thin layer, no business logic
-  services/   # Business logic — core domain (no framework deps)
-  models/     # Data models and DB schema
-  utils/      # Stateless helpers (no side effects)
-tests/        # Mirrors src/ structure
-docs/         # ADRs in docs/adr/; product SCOPE (human)
-.vibe/docs/   # architecture.md, requirements.md, design.md (agent concepts)
-web/README.md # module index → per-folder READMEs
+flake.nix              # nixosConfigurations + auto-exported nixosModules
+configuration.nix      # host: enable services, hosts, ports, backup jobs
+modules/<name>/        # NixOS service modules (see modules/README.md)
+secrets/               # sops-encrypted secrets
+docs/BACKUP.md         # human ops: restic restore flow
+.vibe/docs/            # architecture.md, requirements.md, design.md (agent concepts)
 ```
 
-Rules:
-- Max 10–12 lines
-- Purpose comment per directory (not just the name)
-- Call out non-obvious naming or structure
+### Section 3: Invariants
+
+- `zugvoegel.services.<name>` option namespace
+- New module: `modules/<name>/default.nix` auto-picked up by flake
+- Secrets via sops only; CI deploy via unprivileged `deploy` user
+
+### Section 4: Doc index
+
+Point to `modules/README.md`, `.vibe/docs/`, `docs/BACKUP.md` — not legacy `ARCHITECTURE.md`.
 
 ---
 
-### Section 3: Conventions
+## CLAUDE.md
 
-```markdown
-## Conventions
-
-- **Naming:** camelCase functions, PascalCase classes, SCREAMING_SNAKE constants
-- **Errors:** Always throw typed errors (`class NotFoundError extends AppError`)
-- **Async:** Always async/await, never .then() chains
-- **Tests:** One test file per source file, same name + `.test.ts`
-- **Imports:** Absolute paths via `@app/` alias — no relative `../../` imports
-- **Types:** No `any`. Use `unknown` + type guards instead.
-```
-
-Rules:
-- State the convention AND the anti-pattern to avoid
-- Bold the category label for scanability
-- Include the "why" only if non-obvious
+Short pointer block to `AGENTS.md`, `modules/README.md`, `.vibe/docs/`.
 
 ---
 
-### Section 4: Architectural invariants
+## .cursor/rules
 
-```markdown
-## Invariants
-
-- `services/` NEVER imports from `api/` — dependency flows inward only
-- All DB access goes through `models/` — no raw SQL in services
-- `utils/` has zero side effects — pure functions only
-- Auth validation happens at API layer — services receive authenticated context
-```
-
-Rules:
-- State as positive facts ("X never depends on Y")
-- These are the things AI agents most commonly violate
-- Include direction of dependency for layered architectures
-
----
-
-### Section 5: Gotchas (optional but high-value)
-
-```markdown
-## Gotchas
-
-- Tests reset the DB with `beforeEach(resetDb)` — don't assume state between tests
-- `config.ts` lazy-loads env vars — access it only inside functions, not at module level
-```
-
-Rules:
-- Include only things that have actually caused mistakes
-- Max 5–8 items
-
+- `core.mdc` — git/security invariants (always apply)
+- `main.mdc` — doc index pointers
+- `nix.mdc` — glob-scoped Nix module conventions
