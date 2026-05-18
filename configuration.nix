@@ -156,7 +156,7 @@ in
       grafanaPort = 4000;
       lokiPort = 4001;
       prometheusPort = 4002;
-      promtailPort = 4003;
+      alloyPort = 4003;
       openFirewall = false;
 
       # Authentication configuration

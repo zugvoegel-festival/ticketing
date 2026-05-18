@@ -10,7 +10,7 @@ let
 in
 {
   options.zugvoegel.services.monitoring = {
-    enable = mkEnableOption "monitoring stack (Loki, Grafana, Prometheus, Promtail)";
+    enable = mkEnableOption "monitoring stack (Loki, Grafana, Prometheus, Alloy)";
 
     grafanaHost = mkOption {
       type = types.nullOr types.str;
@@ -58,10 +58,10 @@ in
       description = "Port for Prometheus metrics service";
     };
 
-    promtailPort = mkOption {
+    alloyPort = mkOption {
       type = types.port;
       default = 9080;
-      description = "Port for Promtail log collection service";
+      description = "Port for Grafana Alloy HTTP UI and metrics";
     };
 
     openFirewall = mkOption {
@@ -284,39 +284,47 @@ in
       webConfigFile = cfg.prometheusAuth.webConfigFile;
     };
 
-    # Promtail - Log collection
-    services.promtail = {
+    # Grafana Alloy - journal log collection (replaces Promtail)
+    services.alloy = {
       enable = true;
-      configuration = {
-        server = {
-          http_listen_address = "127.0.0.1";
-          http_listen_port = cfg.promtailPort;
-        };
-        positions.filename = "/tmp/positions.yaml";
-        clients = [ { url = "http://127.0.0.1:${toString cfg.lokiPort}/loki/api/v1/push"; } ];
-        scrape_configs = [
-          # System logs
-          {
-            job_name = "journal";
-            journal = {
-              max_age = "12h";
-              labels.job = "systemd-journal";
-            };
-            relabel_configs = [
-              {
-                source_labels = [ "__journal__systemd_unit" ];
-                target_label = "unit";
-              }
-            ];
-          }
-        ];
-      };
+      extraFlags = [
+        "--server.http.listen-addr=127.0.0.1:${toString cfg.alloyPort}"
+        "--disable-reporting"
+      ];
     };
 
     # Dashboard files setup
     systemd.tmpfiles.rules = [ "d /var/lib/grafana/dashboards 0755 grafana grafana -" ];
 
     environment.etc = {
+      "alloy/config.alloy".text = ''
+        loki.relabel "journal" {
+          forward_to = []
+
+          rule {
+            source_labels = ["__journal__systemd_unit"]
+            target_label  = "unit"
+          }
+        }
+
+        loki.source.journal "journal" {
+          max_age       = "12h"
+          forward_to    = [loki.write.loki.receiver]
+          relabel_rules = loki.relabel.journal.rules
+          labels        = { job = "systemd-journal" }
+
+          legacy_position {
+            file = "/tmp/positions.yaml"
+            name = "journal"
+          }
+        }
+
+        loki.write "loki" {
+          endpoint {
+            url = "http://127.0.0.1:${toString cfg.lokiPort}/loki/api/v1/push"
+          }
+        }
+      '';
       "grafana/dashboards/server-essentials.json" = {
         text = builtins.readFile ./dashboards/server-essentials.json;
         mode = "0644";
@@ -409,7 +417,7 @@ in
         "loki.service"
         "grafana-dashboard-setup.service"
       ];
-      promtail.after = [ "loki.service" ];
+      alloy.after = [ "loki.service" ];
 
       # Copy dashboard files to Grafana directory
       grafana-dashboard-setup = {

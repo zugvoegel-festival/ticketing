@@ -13,7 +13,7 @@ A comprehensive NixOS-based deployment for event management infrastructure, desi
 - **Automated Backup**: Comprehensive backup solution with encryption and remote storage
 
 ### Monitoring & Observability
-- **Simplified Monitoring Stack**: Complete observability with Grafana dashboards, Prometheus metrics, Loki log aggregation, and Promtail collection
+- **Simplified Monitoring Stack**: Complete observability with Grafana dashboards, Prometheus metrics, Loki log aggregation, and Alloy journal collection
 - **SSL/TLS**: Automatic HTTPS certificates via Let's Encrypt
 - **Nginx Reverse Proxy**: Professional routing and load balancing
 

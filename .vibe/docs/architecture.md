@@ -18,7 +18,7 @@ NixOS flake for Zugvögel Festival infra: one host `pretix-server-01`, declarati
 | schwarmplaner | Multi-instance volunteer planning; CI via `deploy` user |
 | 99trees | Multi-instance field game; CI via shared `deploy` user |
 | backup | Per-service restic jobs + `backup-restore` helper |
-| monitoring | Grafana / Loki / Prometheus / Promtail (+ dashboards) |
+| monitoring | Grafana / Loki / Prometheus / Alloy (+ dashboards) |
 | bank-automation | Scheduled Pretix bank reconciliation (optional) |
 | wedding-catcher | Optional single-container app |
 
