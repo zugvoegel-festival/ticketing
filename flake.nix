@@ -23,7 +23,9 @@
         name = x;
         value = import (./modules + "/${x}");
       })
-      (builtins.attrNames (builtins.readDir ./modules)));
+      (builtins.attrNames (
+        nixpkgs.lib.filterAttrs (_: t: t == "directory") (builtins.readDir ./modules)
+      )));
     # Define system configurations
 
     nixosConfigurations = {
