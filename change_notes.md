@@ -5,10 +5,10 @@
 - 
 
 ## 🔧 Improvements
-- 
+- Remove responsible-vibe MCP config; pin GitHub Actions checkout and install-nix to commit SHAs; fix nixos-anywhere flake target to pretix-server-01.
 
 ## 📚 Documentation
-- Hybrid agent docs bootstrap (docs-init): modules/README.md + per-module READMEs, .vibe/docs/ concept layer, docs-* skill bundle; removed legacy docs/ARCHITECTURE.md and docs-bootstrap/docs-commit-check/docs-writer skills.
+- 
 
 ## ⚠️ Breaking Changes
 - 

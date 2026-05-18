@@ -1,25 +1,19 @@
 {
   "servers": {
-    "responsible-vibe-mcp": {
-      "command": "npx",
-      "args": ["responsible-vibe-mcp"]
-    },
     "nixos": {
       "command": "nix",
       "args": ["run", "github:utensils/mcp-nixos", "--"]
     },
     "ssh-mcp": {
-            "command": "npx",
-            "args": [
-                "ssh-mcp",
-                "-y",
-                "--",
-                "--host=zv",
-                "--port=22",
-                "--user=root"
-            ],
-        }
-  
-}
-  
+      "command": "npx",
+      "args": [
+        "ssh-mcp",
+        "-y",
+        "--",
+        "--host=zv",
+        "--port=22",
+        "--user=root"
+      ]
+    }
+  }
 }

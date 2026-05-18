@@ -9,9 +9,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: cachix/install-nix-action@v22
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31
     - run: mkdir -p ~/.ssh
     - run: echo "${{ secrets.SSH_SECRET_KEY }}" > ~/.ssh/deploy_key
     - run: chmod 700 ~/.ssh && chmod 600 ~/.ssh/deploy_key
-    - run: nix run github:numtide/nixos-anywhere -- -i ~/.ssh/deploy_key --flake .\#awesome-server-01 root@${{inputs.demo_server_ip }}
+    - run: nix run github:numtide/nixos-anywhere -- -i ~/.ssh/deploy_key --flake .\#pretix-server-01 root@${{ inputs.demo_server_ip }}
