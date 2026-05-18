@@ -1,0 +1,24 @@
+---
+description: NixOS modules and flake layout for this repo.
+globs: ["flake.nix", "configuration.nix", "hardware-configuration.nix", "modules/**/*.nix"]
+alwaysApply: false
+---
+
+# Nix conventions — ticketing
+
+Dense overview: `AGENTS.md`, module map `modules/README.md`, cross-cutting `.vibe/docs/architecture.md`.
+
+## Module shape
+- Standard args: `{ config, lib, pkgs, ... }` — use `with lib;` where the rest of the file already does
+- Bind config: `let cfg = config.zugvoegel.services.<name>; in …`
+- Expose `options.zugvoegel.services.<name>` and gate system config with `config = mkIf cfg.enable { … };`
+
+## Options
+- Prefer `mkEnableOption`, `mkOption` with `types.*` from `lib.types`
+- Match naming, style, and option structure of neighboring modules (e.g. `modules/pretix`, `modules/schwarmplaner`)
+
+## Validate locally
+- `nixos-rebuild build --flake '.#pretix-server-01'`
+
+## Cross-cutting
+- Backups, nginx, Docker stacks: follow patterns in sibling module READMEs and `.vibe/docs/design.md`

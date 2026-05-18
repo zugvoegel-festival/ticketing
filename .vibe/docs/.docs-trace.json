@@ -1,0 +1,21 @@
+{
+  "commit": "ff294afae89e671ae0e94d7e8dd645b62fd9176a",
+  "createdAt": "2026-05-18T19:32:08Z",
+  "updatedAt": "2026-05-18T19:32:08Z",
+  "files": [
+    ".vibe/docs/architecture.md",
+    ".vibe/docs/requirements.md",
+    ".vibe/docs/design.md",
+    ".vibe/docs/dependency-graph.md"
+  ],
+  "dependsOn": [
+    "modules/README.md",
+    "modules/pretix/README.md",
+    "modules/schwarmplaner/README.md",
+    "modules/99trees/README.md",
+    "modules/backup/README.md",
+    "modules/monitoring/README.md",
+    "modules/bank-automation/README.md",
+    "modules/wedding-catcher/README.md"
+  ]
+}

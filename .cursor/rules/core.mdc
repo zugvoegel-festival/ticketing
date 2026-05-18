@@ -1,0 +1,24 @@
+---
+alwaysApply: true
+---
+
+# Critical invariants — ticketing (NixOS flake)
+
+## Commits (STRICT)
+- NEVER auto-commit — only commit on explicit user request ("commit", "committe das")
+- NEVER skip hooks (`--no-verify`)
+- NEVER force-push to main/master or tags
+
+## Releases / tags
+- If this repo uses tags for deploys, NEVER force-push tags
+- Prefer release scripts (if present) over manual version bumps for production releases
+
+## Security
+- Secrets: edit encrypted `secrets/secrets.yaml` with `sops` only; never commit plaintext. Runtime via sops-nix (e.g. `/run/secrets/…`).
+- Do not read `.env`, `.env.*`, credential, token, or private-key files unless the user explicitly asks for a specific value or line
+- Never commit `.env` files or credentials
+- If any client-side code exists in the tree: never ship secrets into the client bundle
+
+## NixOS / this flake
+- Festival-specific services use the option namespace `zugvoegel.services.<name>` (see `modules/*/default.nix`)
+- New module: add `modules/<name>/default.nix` — picked up automatically by `flake.nix` (`readDir ./modules`)

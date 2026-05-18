@@ -1,0 +1,8 @@
+---
+description: Project entry points for agents — load when task touches deploy, modules, or secrets.
+alwaysApply: false
+---
+
+@AGENTS.md
+
+For module list and per-service detail: `modules/README.md`. For cross-module architecture: `.vibe/docs/`.

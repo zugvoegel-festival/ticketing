@@ -1,6 +1,6 @@
 # Agent notes (ticketing)
 
-Dense pointers only; narrative lives in `README.md`, codemap in `docs/ARCHITECTURE.md`.
+Dense pointers only; narrative lives in `README.md`, module map in `modules/README.md`.
 
 ## Commands
 
@@ -9,12 +9,26 @@ Dense pointers only; narrative lives in `README.md`, codemap in `docs/ARCHITECTU
 - **Eval/build system locally:** `nixos-rebuild build --flake '.#pretix-server-01'`
 - **Secrets:** `nix-shell -p sops --run "sops secrets/secrets.yaml"`
 
+## Structure
+
+```
+flake.nix              # nixosConfigurations + auto-exported nixosModules
+configuration.nix      # host: enable services, hosts, ports, backup jobs
+modules/<name>/        # NixOS service modules (see modules/README.md)
+secrets/               # sops-encrypted secrets (secrets/secrets.yaml)
+docs/BACKUP.md         # human ops: restic restore flow
+.vibe/docs/            # cross-module architecture (agent concepts)
+```
+
+## Invariants
+
+- Festival services use option namespace `zugvoegel.services.<name>` (see `modules/*/default.nix`).
+- New module: add `modules/<name>/default.nix` — picked up automatically by `flake.nix` (`readDir ./modules`).
+- Secrets: edit encrypted `secrets/secrets.yaml` with sops only; runtime via sops-nix (`/run/secrets/…`).
+- CI deploy (Schwarmplaner, 99trees): unprivileged `deploy` user — not root SSH keys.
+
 ## Docs
 
-- `docs/ARCHITECTURE.md` — modules, flake, invariants, where to edit
-- `docs/BACKUP.md` — restic layout, secrets keys, restore flow
-
-## Conventions
-
-- Service options: `zugvoegel.services.<module>` in `modules/*/default.nix`
-- New module: `modules/foo/default.nix` is picked up automatically by `flake.nix`
+- `modules/README.md` — module index; per-module READMEs under `modules/<name>/`
+- `.vibe/docs/` — architecture, requirements, design, dependency graph
+- `docs/BACKUP.md` — restic layout, secrets keys, restore flow (human ops)
