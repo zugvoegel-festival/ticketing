@@ -144,18 +144,6 @@ in
           ];
           schedule = "02:55";
         };
-
-        trees99-test = {
-          enable = true;
-          type = "files";
-          paths = [ "/var/lib/99trees-test/data" ];
-          excludePaths = [
-            "*.db-journal"
-            "*.db-wal"
-            "*.db-shm"
-          ];
-          schedule = "03:05";
-        };
       };
     };
 

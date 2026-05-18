@@ -100,10 +100,10 @@ expects one SOPS env-file per instance (`schwarmplaner-prod-envfile`,
 ## 99trees (Zugvögel field game)
 
 The NixOS module [`modules/99trees/default.nix`](../modules/99trees/default.nix)
-(`zugvoegel.services.trees99`) expects one SOPS env-file per instance:
-`99trees-prod-envfile`, `99trees-test-envfile`.
+(`zugvoegel.services.trees99`) expects one SOPS env-file per configured instance
+(e.g. `99trees-prod-envfile` for the prod instance in `configuration.nix`).
 
-1. **Add per-instance env-files** (edit with `sops secrets/secrets.yaml`):
+1. **Add the prod env-file** (edit with `sops secrets/secrets.yaml`):
 
    ```yaml
    99trees-prod-envfile: |
@@ -111,33 +111,29 @@ The NixOS module [`modules/99trees/default.nix`](../modules/99trees/default.nix)
      NUXT_ADMIN_INIT_SECRET=<bootstrap secret>
      NUXT_CREW_SESSION_PASSWORD=<≥32 chars random>
      NUXT_ENVIRONMENT=production
-   99trees-test-envfile: |
-     NUXT_SESSION_PASSWORD=<≥32 chars random>
-     NUXT_ADMIN_INIT_SECRET=<bootstrap secret>
-     NUXT_CREW_SESSION_PASSWORD=<≥32 chars random>
-     NUXT_ENVIRONMENT=test
    ```
 
    Generate values: `openssl rand -base64 48 | tr -d '/=+' | head -c 48`
 
 2. **Deploy SSH key** — add the pubkey to
-   `zugvoegel.services.trees99.deployAuthorizedKeys` in `configuration.nix`
-   (replace the `TODO` placeholder). Private key → `SSH_PRIVATE_KEY` in the
-   99trees GitHub repo. The shared `deploy` user must already exist (from
-   schwarmplaner).
+   `zugvoegel.services.trees99.deployAuthorizedKeys` in `configuration.nix`.
+   Private key → `SSH_PRIVATE_KEY` in the 99trees GitHub repo. The shared
+   `deploy` user must already exist (from schwarmplaner).
 
-3. **DNS** (before first deploy):
+3. **Backblaze B2** — create bucket `zv-backups-trees99-prod` (private, same
+   region as other `zv-backups-*` buckets). Restic job: `trees99-prod`.
 
-   - `spiel.zugvoegelfestival.org` → server A record
-   - `test.spiel.zugvoegelfestival.org` → server A record
+4. **DNS** (before first deploy):
 
-4. **Host activation:**
+   - `trees.loco.vision` → server A record
+
+5. **Host activation:**
 
    ```bash
    ./update-and-deploy.sh
    ```
 
-5. **First image push** — from the 99trees repo, after GitHub secrets are set:
+6. **First image push** — from the 99trees repo, after GitHub secrets are set:
 
    ```bash
    bash .cursor/skills/release/scripts/release-test.sh
