@@ -100,7 +100,19 @@ in
             dbPassword = mkOption {
               type = types.nullOr types.str;
               default = null;
-              description = "Database password (for MySQL)";
+              description = ''
+                Database password for MySQL (discouraged: ends up in the Nix store).
+                Prefer dbPasswordFile with a SOPS-managed path.
+              '';
+            };
+
+            dbPasswordFile = mkOption {
+              type = types.nullOr types.path;
+              default = null;
+              description = ''
+                File containing the MySQL password (single line). Prefer over dbPassword
+                so the secret is not copied into the store.
+              '';
             };
 
             dumpPath = mkOption {
@@ -175,11 +187,18 @@ in
                     ${config.virtualisation.docker.package}/bin/docker exec ${serviceConfig.containerName} pg_dumpall -U ${serviceConfig.dbUser} > ${dumpDir}/dump_${timestamp}.sql
                   ''
                 else if serviceConfig.dbType == "mysql" then
+                  let
+                    pwdArg =
+                      if serviceConfig.dbPasswordFile != null then
+                        "-p$(cat ${serviceConfig.dbPasswordFile})"
+                      else if serviceConfig.dbPassword != null then
+                        "-p${serviceConfig.dbPassword}"
+                      else
+                        "";
+                  in
                   ''
                     mkdir -p "${dumpDir}"
-                    ${config.virtualisation.docker.package}/bin/docker exec ${serviceConfig.containerName} mysqldump -u ${serviceConfig.dbUser} ${
-                      if serviceConfig.dbPassword != null then "-p${serviceConfig.dbPassword}" else ""
-                    } ${serviceConfig.dbName} > ${dumpDir}/dump_${timestamp}.sql
+                    ${config.virtualisation.docker.package}/bin/docker exec ${serviceConfig.containerName} mysqldump -u ${serviceConfig.dbUser} ${pwdArg} ${serviceConfig.dbName} > ${dumpDir}/dump_${timestamp}.sql
                   ''
                 else
                   ""

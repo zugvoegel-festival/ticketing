@@ -66,8 +66,11 @@ in
 
     openFirewall = mkOption {
       type = types.bool;
-      default = true;
-      description = "Open firewall ports for monitoring services";
+      default = false;
+      description = ''
+        When true, opens Grafana/Loki/Prometheus service ports on the host firewall.
+        Default false: access only via nginx (TLS) on 80/443 to 127.0.0.1 backends.
+      '';
     };
 
     # Authentication Options
@@ -119,12 +122,18 @@ in
       mode = "0400";
     };
 
+    sops.secrets.grafana-admin-password = {
+      owner = "grafana";
+      mode = "0400";
+    };
+
     # Loki - Log aggregation
     services.loki = {
       enable = true;
       configuration = {
         auth_enabled = false;
         server = {
+          http_listen_address = "127.0.0.1";
           http_listen_port = cfg.lokiPort;
           grpc_listen_port = cfg.lokiPort + 1000; # Use lokiPort + 1000 for GRPC (e.g., 4100 for GRPC when HTTP is 3100)
         };
@@ -176,11 +185,19 @@ in
     services.grafana = {
       enable = true;
       settings = {
-        server.http_port = cfg.grafanaPort;
+        server = {
+          http_addr = "127.0.0.1";
+          http_port = cfg.grafanaPort;
+        };
         security =
           {
             admin_user = cfg.grafanaAuth.adminUser;
-            admin_password = "admin"; # TODO: Use SOPS secret file
+            # Plain path only when overriding; else SOPS-managed secret (add key `grafana-admin-password` via sops).
+            admin_password =
+              if cfg.grafanaAuth.adminPasswordFile != null then
+                "\$__file{${toString cfg.grafanaAuth.adminPasswordFile}}"
+              else
+                "\$__file{${config.sops.secrets.grafana-admin-password.path}}";
             disable_initial_admin_creation = false;
             # Read from SOPS-decrypted file so the key is not in the Nix store
             secret_key = "\$__file{${config.sops.secrets.grafana-secret-key.path}}";
@@ -226,26 +243,25 @@ in
       };
     };
 
-    # Node Exporter - System metrics
-    services.prometheus.exporters.node = {
-      enable = true;
-      port = 9100;
-      enabledCollectors = [
-        "systemd"
-        "textfile"
-        "filesystem"
-        "loadavg"
-        "meminfo"
-        "netdev"
-        "stat"
-      ];
-    };
-
-    # Prometheus - Metrics collection
+    # Prometheus + node_exporter (single services.prometheus attrset)
     services.prometheus = {
       enable = true;
+      listenAddress = "127.0.0.1";
       port = cfg.prometheusPort;
-      # webConfigFile = mkIf (cfg.prometheusAuth.webConfigFile != null) cfg.prometheusAuth.webConfigFile;
+      exporters.node = {
+        enable = true;
+        listenAddress = "127.0.0.1";
+        port = 9100;
+        enabledCollectors = [
+          "systemd"
+          "textfile"
+          "filesystem"
+          "loadavg"
+          "meminfo"
+          "netdev"
+          "stat"
+        ];
+      };
       scrapeConfigs = [
         {
           job_name = "prometheus";
@@ -264,13 +280,18 @@ in
           static_configs = [ { targets = [ "127.0.0.1:${toString cfg.lokiPort}" ]; } ];
         }
       ];
+    } // optionalAttrs (cfg.prometheusAuth.webConfigFile != null) {
+      webConfigFile = cfg.prometheusAuth.webConfigFile;
     };
 
     # Promtail - Log collection
     services.promtail = {
       enable = true;
       configuration = {
-        server.http_listen_port = cfg.promtailPort;
+        server = {
+          http_listen_address = "127.0.0.1";
+          http_listen_port = cfg.promtailPort;
+        };
         positions.filename = "/tmp/positions.yaml";
         clients = [ { url = "http://127.0.0.1:${toString cfg.lokiPort}/loki/api/v1/push"; } ];
         scrape_configs = [
@@ -324,6 +345,11 @@ in
                 enableACME = true;
                 locations."/".proxyPass = "http://127.0.0.1:${toString cfg.grafanaPort}";
                 locations."/".proxyWebsockets = true;
+                locations."/".extraConfig = ''
+                  add_header X-Content-Type-Options "nosniff" always;
+                  add_header X-Frame-Options "SAMEORIGIN" always;
+                  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+                '';
               };
             })
             // (mkIf (cfg.prometheusHost != null) {
@@ -331,6 +357,11 @@ in
                 forceSSL = true;
                 enableACME = true;
                 locations."/".proxyPass = "http://127.0.0.1:${toString cfg.prometheusPort}";
+                locations."/".extraConfig = ''
+                  add_header X-Content-Type-Options "nosniff" always;
+                  add_header X-Frame-Options "SAMEORIGIN" always;
+                  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+                '';
               };
             })
             // (mkIf (cfg.lokiHost != null) {
@@ -338,6 +369,11 @@ in
                 forceSSL = true;
                 enableACME = true;
                 locations."/".proxyPass = "http://127.0.0.1:${toString cfg.lokiPort}";
+                locations."/".extraConfig = ''
+                  add_header X-Content-Type-Options "nosniff" always;
+                  add_header X-Frame-Options "SAMEORIGIN" always;
+                  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+                '';
               };
             });
         };

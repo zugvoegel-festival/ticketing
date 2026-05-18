@@ -51,6 +51,15 @@ in
       default = 12345;
       description = "Port for Pretix web service";
     };
+
+    enableDangerousMaintenanceTools = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        When true, installs destructive helpers (e.g. nuke-docker) on PATH.
+        Keep false on production hosts.
+      '';
+    };
   };
 
   config = mkIf cfg.enable {
@@ -74,10 +83,7 @@ in
               ${pkgs.docker}/bin/docker system prune -a
             '';
       in
-      [
-        restart-all-pretix
-        nuke-docker
-      ];
+      [ restart-all-pretix ] ++ optional cfg.enableDangerousMaintenanceTools nuke-docker;
 
     sops.secrets.pretix-envfile = { };
 
@@ -126,9 +132,9 @@ in
           image = "postgres:16.1";
           extraOptions = [ "--network=pretix-net" ];
           environment = {
-            POSTGRES_HOST_AUTH_METHOD = "trust";
             POSTGRES_DB = "pretix";
           };
+          environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
           volumes = [ "/var/lib/pretix-postgresql/data:/var/lib/postgresql/data" ];
         };
 
@@ -165,7 +171,12 @@ in
       virtualHosts."${cfg.host}" = {
         enableACME = true;
         forceSSL = true;
-        locations."/".proxyPass = "http://127.0.0.1:12345";
+        locations."/".proxyPass = "http://127.0.0.1:${toString cfg.port}";
+        locations."/".extraConfig = ''
+          add_header X-Content-Type-Options "nosniff" always;
+          add_header X-Frame-Options "SAMEORIGIN" always;
+          add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        '';
       };
     };
   };

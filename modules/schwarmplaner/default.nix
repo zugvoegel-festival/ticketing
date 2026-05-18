@@ -125,6 +125,9 @@ let
             proxy_read_timeout 120s;
             proxy_connect_timeout 60s;
             proxy_send_timeout 120s;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-Frame-Options "SAMEORIGIN" always;
+            add_header Referrer-Policy "strict-origin-when-cross-origin" always;
           '';
         };
       }
