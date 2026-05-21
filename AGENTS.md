@@ -4,7 +4,7 @@ Dense pointers only; narrative lives in `README.md`, module map in `modules/READ
 
 ## Commands
 
-- **Deploy (scripted host):** `./deploy.sh` (optional `--boot` if switch is inhibited)
+- **Deploy (scripted host):** `./deploy.sh` (optional `--boot` if switch is inhibited; uses `nix run .#nixos-rebuild -- --fast` for deploy from macOS)
 - **Deploy + bump inputs:** `./update-and-deploy.sh`
 - **Eval/build system locally:** `nixos-rebuild build --flake '.#pretix-server-01'`
 - **Secrets:** `nix-shell -p sops --run "sops secrets/secrets.yaml"`

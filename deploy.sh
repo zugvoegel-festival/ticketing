@@ -35,7 +35,15 @@ EOF
 done
 
 echo "Deploying pinned flake to pretix-server-01..."
-echo "Entering nix-shell for nixos-rebuild ($ACTION)..."
-nix-shell -p nixos-rebuild --run "nixos-rebuild ${ACTION} --flake '.#pretix-server-01' --target-host root@185.232.69.172 --build-host root@185.232.69.172 --option eval-cache false"
+echo "Running nixos-rebuild ($ACTION) via remote build host..."
+# Pinned nixos-rebuild from flake (apps.<host-system>.nixos-rebuild).
+# --fast: skip re-exec as x86_64-linux nixos-rebuild (cannot run on darwin).
+nix run .#nixos-rebuild -- \
+  "${ACTION}" \
+  --fast \
+  --flake '.#pretix-server-01' \
+  --target-host root@185.232.69.172 \
+  --build-host root@185.232.69.172 \
+  --option eval-cache false
 
 echo "Deployment complete."

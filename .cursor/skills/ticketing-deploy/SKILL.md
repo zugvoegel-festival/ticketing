@@ -19,7 +19,7 @@ disable-model-invocation: true
 
 - Either **repository root** when calling `./deploy.sh` / `./update-and-deploy.sh`, **or** any cwd when using the **wrapper scripts** below (they resolve the repo root).
 - **Network** and SSH access as assumed by the scripts (host/user are **pinned inside** `deploy.sh` / `update-and-deploy.sh`).
-- Local **Nix** with `nix-shell` / `nixos-rebuild` available as used by the scripts.
+- Local **Nix** with flake app `nix run .#nixos-rebuild` (darwin-safe via `--fast`; see Vocura `deployment/server/deploy.sh`).
 
 ## `./deploy.sh` (repo root)
 

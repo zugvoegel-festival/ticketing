@@ -24,7 +24,8 @@ Operator checklist: [`runbook.md`](runbook.md).
 **Host / module changes** (nginx, monitoring, secrets, nixpkgs, image pins in Nix) are deployed manually:
 
 ```bash
-./deploy.sh              # pinned flake only
+./deploy.sh              # pinned flake only (nix run .#nixos-rebuild -- --fast; safe from macOS)
+./deploy.sh --boot       # when switch hangs — activate on reboot
 ./update-and-deploy.sh   # nix flake update + deploy
 ```
 

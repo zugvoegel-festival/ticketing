@@ -14,7 +14,30 @@
   };
 
   # Use `nix flake show` to view outputs
-  outputs = { self, nixpkgs, disko, sops-nix, bank-automation }@inputs: {
+  outputs = { self, nixpkgs, disko, sops-nix, bank-automation }@inputs:
+    let
+      # Systems used to run deploy.sh (orchestrator, not pretix-server-01 target).
+      deploySystems = [
+        "x86_64-linux"
+        "aarch64-darwin"
+        "x86_64-darwin"
+      ];
+      packages = nixpkgs.lib.genAttrs deploySystems (
+        system: {
+          nixos-rebuild = nixpkgs.legacyPackages.${system}.nixos-rebuild;
+        }
+      );
+      apps = nixpkgs.lib.genAttrs deploySystems (
+        system: {
+          nixos-rebuild = {
+            type = "app";
+            program = "${packages.${system}.nixos-rebuild}/bin/nixos-rebuild";
+          };
+        }
+      );
+    in
+    {
+      inherit packages apps;
 
     # Output all modules in ./modules to flake. Modules should be in
     # individual subdirectories and contain a default.nix file
@@ -44,5 +67,5 @@
         ];
       };
     };
-  };
+    };
 }

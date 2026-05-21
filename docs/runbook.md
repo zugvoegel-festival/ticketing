@@ -13,7 +13,16 @@ Host: **pretix-server-01** (`185.232.69.172`). Architecture and CI tables:
 ./deploy.sh
 ```
 
-Use `./update-and-deploy.sh` when bumping `flake.lock` (nixpkgs on `nixos-25.05`).
+Deploy from **macOS** uses `nix run .#nixos-rebuild -- --fast` (flake app; do not use `nix-shell -p nixos-rebuild`).
+
+If `switch` hangs or D-Bus disconnects during activation (e.g. first rollout of runtime image pins), use boot instead of switch:
+
+```bash
+./deploy.sh --boot
+# then reboot pretix-server-01
+```
+
+Use `./update-and-deploy.sh` when bumping `flake.lock` (nixpkgs on `nixos-25.05`). Pass `--boot` through: `./update-and-deploy.sh --boot`.
 
 ## App releases (no nixos-rebuild)
 

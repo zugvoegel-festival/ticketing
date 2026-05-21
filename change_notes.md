@@ -6,11 +6,13 @@
 - App CI deploys no longer restart `oci-containers` units with a stale Nix-baked image tag after `docker pull`.
 
 ## 🔧 Improvements
+- `deploy.sh` uses flake app `nix run .#nixos-rebuild -- --fast` so host deploy works from macOS (Vocura pattern); `update-and-deploy.sh` delegates to `deploy.sh`.
 - Extract app image pins to `environments/`; centralize shared `deploy` user in `configuration.nix`; pin nixpkgs to `nixos-25.05`; add Pretix CI deploy wiring (`deployAuthorizedKeys`, `pretix-deploy-backup`); `deploy.sh` supports `--boot`/`--switch`.
 - Remove unused `trees99-test` restic job (99trees is prod-only); flake imports only directories under `modules/`.
 - Remove responsible-vibe MCP config; pin GitHub Actions checkout and install-nix to commit SHAs; fix nixos-anywhere flake target to pretix-server-01.
 
 ## 📚 Documentation
+- Runbook/deploy-overview: macOS deploy via `--fast`, `--boot` when switch stalls during major unit changes.
 - Update AGENTS.md, deploy overview/runbook, HANDOVER, and deploy-flow for runtime image pins and restart scripts.
 - Update AGENTS.md, pretix module README, and deploy-flow for environment pins and Pretix CI deploy.
 - Sync monitoring docs for Alloy (module README, architecture, index).
