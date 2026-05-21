@@ -35,3 +35,4 @@ docs/BACKUP.md         # human ops: restic restore flow
 - `.vibe/docs/` — architecture, requirements, design, dependency graph, deploy-flow
 - `docs/BACKUP.md` — restic layout, secrets keys, restore flow (human ops)
 - `docs/deploy-overview.md` / `docs/runbook.md` — deploy SSOT and operator checklist (human ops)
+- Pretix Docker CI lives in **zugvoegel-festival/pretix** (`docker-build.yml`, `deploy.yml`); this repo only hosts `flake-update.yml`.

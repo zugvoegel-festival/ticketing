@@ -10,13 +10,13 @@
 ## CI app deploy (Pretix / Schwarmplaner / 99trees)
 
 1. GitHub Actions SSH as unprivileged `deploy` user (keys from each service's `deployAuthorizedKeys` in `configuration.nix`).
-2. Optional pre-deploy backup: `pretix-deploy-backup`, `schwarmplaner-deploy-backup`, or `99trees-deploy-backup`.
+2. Optional pre-deploy backup: `pretix-deploy-backup [label]`, `schwarmplaner-deploy-backup prod [label]`, or `99trees-deploy-backup prod [label]`.
 3. `<app>-restart-container <env> <tag>` writes `/var/lib/<app>/deploy/<env>-image`, pulls the image, recreates the container with the baked run spec (not `oci-containers` for app images).
 4. nginx already proxies public host to localhost port — no host rebuild required for image-only updates.
 
 On `./deploy.sh`, activation scripts reconcile runtime tag files from `environments/*.nix` when missing or stale (does not auto-restart running containers).
 
-Pretix build/deploy workflows live in this repo; Schwarmplaner and 99trees CI live in their app repos. Image pins are committed to `environments/*.nix` (app release scripts or Pretix tag CI).
+Pretix / Schwarmplaner / 99trees build/deploy workflows live in their app repos. Image pins are committed to `environments/*.nix` (app release scripts).
 
 ## Backup side path
 

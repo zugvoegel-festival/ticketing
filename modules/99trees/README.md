@@ -1,9 +1,11 @@
 # 99trees
 
-**Purpose:** Per-instance Docker stacks for the Zugvögel field game with nginx, deploy user, and pre-deploy backup script.
+**Purpose:** Production Docker stack for the Zugvögel field game with nginx, deploy user, and CI restart/backup scripts.
 
-- `default.nix` — `zugvoegel.services.trees99` options, multi-instance containers, nginx vhosts with security headers, `99trees-deploy-backup`, shared `deploy` user sudo rules
+- `default.nix` — `zugvoegel.services.trees99` options, runtime container via `99trees-restart-container`, nginx vhosts with security headers, `99trees-deploy-backup prod [label]`
 
-**Depends on:** sops-nix (per-instance env secrets), nginx, Docker; shared `deploy` user (often from schwarmplaner).
+**Depends on:** sops-nix (`99trees-prod-envfile`), nginx, Docker, `lib/runtime-container.nix`; shared `deploy` user.
 
-**Used by:** `configuration.nix` (`prod` instance), GitHub Actions via `deployAuthorizedKeys`.
+**Image pin:** `environments/99trees-prod.nix`. Runtime tag: `/var/lib/99trees/deploy/prod-image`.
+
+**Used by:** `configuration.nix` (prod only), GitHub Actions via `deployAuthorizedKeys`.

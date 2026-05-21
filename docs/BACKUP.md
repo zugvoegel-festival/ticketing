@@ -21,7 +21,8 @@ Align names with `services.restic.backups.<name>` → units `restic-backups-<nam
 
 - **pretix-db** — DB type postgresql, dumps via `docker exec` into `dumpPath`, then path backed up.
 - **pretix-data** — file backup under configured paths + excludes.
-- **schwarmplaner-prod** / **schwarmplaner-test** — file backup of SQLite data dirs (`/var/lib/schwarmplaner-{prod,test}/data`); excludes `*.db-journal`, `*.db-wal`, `*.db-shm` so open DB is not copied inconsistently (stop app or accept crash-consistent copy if you override).
+- **schwarmplaner-prod** — file backup of SQLite data dir (`/var/lib/schwarmplaner-prod/data`); excludes `*.db-journal`, `*.db-wal`, `*.db-shm`.
+- **trees99-prod** — file backup of SQLite data dir (`/var/lib/99trees-prod/data`); same WAL/journal excludes.
 
 Repository: `''${s3BaseUrl}/${bucketPrefix}-${serviceName}''` e.g. `s3:https://s3.us-west-004.backblazeb2.com/zv-backups-pretix-db` when `bucketPrefix = "zv-backups"`.
 

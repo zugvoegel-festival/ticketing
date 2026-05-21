@@ -33,16 +33,15 @@ WITH PASSWORD '…';`) or plan a one-time volume reset if you cannot log in.
 When migrating schwarmplaner from the legacy 4-container MySQL stack to the
 new single-container SQLite app, the NixOS module in
 [`modules/schwarmplaner/default.nix`](../modules/schwarmplaner/default.nix)
-expects one SOPS env-file per instance (`schwarmplaner-prod-envfile`,
-`schwarmplaner-test-envfile`).
+expects one SOPS env-file for production (`schwarmplaner-prod-envfile`).
 
-1. **Add per-instance env-files**
+1. **Add prod env-file**
 
    ```bash
    nix-shell -p sops --run "sops secrets/secrets.yaml"
    ```
 
-   Add two new keys with the env vars validated by
+   Add the env vars validated by
    `web/server/plugins/02-env-validation.plugin.ts` in the schwarmplaner repo:
 
    ```yaml
@@ -50,10 +49,6 @@ expects one SOPS env-file per instance (`schwarmplaner-prod-envfile`,
      NUXT_SESSION_PASSWORD=<long random string, ≥32 chars>
      SCHWARM_JWT_SECRET_KEY=<long random string>
      NUXT_ENVIRONMENT=production
-   schwarmplaner-test-envfile: |
-     NUXT_SESSION_PASSWORD=<long random string, ≥32 chars>
-     SCHWARM_JWT_SECRET_KEY=<long random string>
-     NUXT_ENVIRONMENT=test
    ```
 
    Generate strong random values with e.g.
@@ -67,35 +62,31 @@ expects one SOPS env-file per instance (`schwarmplaner-prod-envfile`,
    - `schwarm-api-envfile` (legacy Express API env)
 
 3. **Add the GitHub Actions deploy key** to
-   `users.users.root.openssh.authorizedKeys.keys` in `configuration.nix`:
+   `zugvoegel.services.schwarmplaner.deployAuthorizedKeys` in `configuration.nix`:
 
    ```bash
    ssh-keygen -t ed25519 -C "github-actions-schwarmplaner" -f /tmp/sp-deploy-key -N ""
    cat /tmp/sp-deploy-key.pub
    ```
 
-   - Public key → paste into `configuration.nix` (the file already has a
-     `TODO` placeholder line you can replace).
-   - Private key → paste into the `SSH_PRIVATE_KEY` GitHub Actions secret
-     in the schwarmplaner repo.
+   - Public key → paste into `configuration.nix` under `deployAuthorizedKeys`.
+   - Private key → `SSH_PRIVATE_KEY` in the schwarmplaner GitHub repo.
    - Wipe the local copy: `shred -u /tmp/sp-deploy-key /tmp/sp-deploy-key.pub`.
 
-4. **Deploy the host** so the new SOPS keys land at
-   `/run/secrets/schwarmplaner-{prod,test}-envfile` and the new authorized
+4. **Deploy the host** so the new SOPS key lands at
+   `/run/secrets/schwarmplaner-prod-envfile` and the new authorized
    key takes effect:
 
    ```bash
    ./update-and-deploy.sh
    ```
 
-5. **Trigger the first schwarmplaner deploy** from the schwarmplaner repo:
+5. **Trigger the first schwarmplaner deploy** from the schwarmplaner repo
+   (production release script or `v*.*.*` tag → `deploy.yml`).
 
-   ```bash
-   bash .cursor/skills/release/scripts/release-test.sh
-   ```
-
-   GitHub Actions will build the image, push it to Docker Hub, SSH in, pull,
-   and `schwarmplaner-restart-container test <tag>` (runtime image pin).
+   GitHub Actions SSH as `deploy`, run `schwarmplaner-deploy-backup prod`, then
+   `schwarmplaner-restart-container prod <tag>` (runtime pin under
+   `/var/lib/schwarmplaner/deploy/prod-image`).
 
 ## 99trees (Zugvögel field game)
 
@@ -133,10 +124,10 @@ The NixOS module [`modules/99trees/default.nix`](../modules/99trees/default.nix)
    ./update-and-deploy.sh
    ```
 
-6. **First image push** — from the 99trees repo, after GitHub secrets are set:
+6. **First prod release** — from the 99trees repo, after GitHub secrets are set:
 
    ```bash
-   bash .cursor/skills/release/scripts/release-test.sh
+   bash .cursor/skills/release/scripts/release-prod.sh
    ```
 
-   See [`docs/DEPLOYMENT.md`](../../99trees/docs/DEPLOYMENT.md) in the 99trees repo.
+   CI runs `99trees-deploy-backup prod`, then `99trees-restart-container prod <tag>`.

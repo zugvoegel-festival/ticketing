@@ -7,10 +7,10 @@ Operator checklist: [`runbook.md`](runbook.md).
 
 | Repo | Owns |
 |------|------|
-| **ticketing** (this repo) | NixOS flake, `environments/*.nix` image pins, host deploy scripts, Pretix Docker CI |
+| **ticketing** (this repo) | NixOS flake, `environments/*.nix` image pins, host deploy scripts |
+| **zugvoegel-festival/pretix** | App + `docker-build.yml` / `deploy.yml` / `rollback.yml` |
 | **schwarmplaner** | App + `build.yml` / `deploy.yml` / `rollback.yml` |
 | **99trees** | App + CI (production only) |
-| **zugvoegel-festival/pretix** | Pretix Dockerfile source (built by `pretix-build.yml` here) |
 
 **App releases (Docker)** do not run `nixos-rebuild` from CI. Actions SSH as `deploy`, back up data, and run `<app>-restart-container <env> <tag>` (writes `/var/lib/<app>/deploy/<env>-image`, `docker pull`, `docker run`).
 
@@ -45,38 +45,26 @@ Instance pins live in `environments/`:
 | File | Service |
 |------|---------|
 | `environments/pretix.nix` | Pretix (`manulinger/zv-ticketing`) |
-| `environments/schwarmplaner-prod.nix` | Schwarmplaner production |
-| `environments/schwarmplaner-test.nix` | Schwarmplaner test |
+| `environments/schwarmplaner-prod.nix` | Schwarmplaner production (single instance) |
 | `environments/99trees-prod.nix` | 99trees production only |
 
-App release scripts in **schwarmplaner** / **99trees** commit+push pin updates to this repo (`TICKETING_REPO`, default `../ticketing`).
+App release scripts in **pretix** / **schwarmplaner** / **99trees** commit+push pin updates to this repo (`TICKETING_REPO`, default `../ticketing`).
 
 ## Pretix release flow
 
-1. Update `environments/pretix.nix` with the target immutable tag (or let CI derive from tag).
-2. Create and push tag `pretix-vX.Y.Z` on **this repo**.
-3. `pretix-build.yml` builds from `zugvoegel-festival/pretix@main` → pushes `:X.Y.Z` + `:pretix-latest`.
-4. `pretix-deploy.yml` backs up, runs `pretix-restart-container prod <tag>`, checks HTTPS.
+1. From **pretix** repo: `bash .cursor/skills/release/scripts/release-prod.sh [VERSION]` — pins `environments/pretix.nix`, pushes tag `vX.Y.Z`.
+2. `docker-build.yml` builds → pushes `:X.Y.Z` + `:pretix-latest`.
+3. `deploy.yml` backs up, runs `pretix-restart-container prod <tag>`, checks HTTPS.
 
-Rollback: Actions → *Rollback Pretix Docker image* → enter immutable tag.
+Rollback: pretix repo Actions → *Rollback Docker image* → enter immutable tag.
 
 ## CI/CD (this repo)
 
 | Workflow | Purpose |
 |----------|---------|
 | `flake-update.yml` | Weekly nixpkgs lock PR |
-| `pretix-build.yml` | Build + push Pretix image on `pretix-v*.*.*` tags |
-| `pretix-deploy.yml` | SSH deploy after build |
-| `pretix-rollback.yml` | Manual Pretix image rollback |
 
-## GitHub Actions secrets (ticketing repo)
-
-| Secret | Description |
-|--------|-------------|
-| `DOCKER_USERNAME` / `DOCKER_PASSWORD` | Docker Hub push for Pretix builds |
-| `SSH_PRIVATE_KEY` | Matches `deployAuthorizedKeys` in pretix module |
-| `SSH_HOST` | (Optional) default `185.232.69.172` |
-| `SSH_KNOWN_HOSTS` | **Required** for pretix deploy/rollback — `ssh-keyscan -H 185.232.69.172` |
+Pretix / Schwarmplaner / 99trees CI lives in their app repos. See pretix `DEPLOYMENT.md`.
 
 ## One-time setup
 
@@ -86,4 +74,4 @@ After adding `deployAuthorizedKeys` for pretix (and app repos), run once:
 ./deploy.sh
 ```
 
-See schwarmplaner / 99trees `DEPLOYMENT.md` for app-specific secrets and health URLs.
+See pretix / schwarmplaner / 99trees `DEPLOYMENT.md` for app-specific secrets and health URLs.

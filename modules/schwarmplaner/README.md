@@ -1,9 +1,11 @@
 # Schwarmplaner
 
-**Purpose:** Per-instance Docker stacks for volunteer shift planning with nginx, deploy user, and CI deploy sudo rules.
+**Purpose:** Production Docker stack for volunteer shift planning with nginx, deploy user, and CI restart/backup scripts.
 
-- `default.nix` — `zugvoegel.services.schwarmplaner` options, multi-instance containers, nginx vhosts with security headers, `schwarmplaner-deploy-backup` helper, shared `deploy` user wiring
+- `default.nix` — `zugvoegel.services.schwarmplaner` options, runtime container via `schwarmplaner-restart-container`, nginx vhosts with security headers, `schwarmplaner-deploy-backup prod [label]`
 
-**Depends on:** sops-nix (per-instance env secrets), nginx, Docker.
+**Depends on:** sops-nix (`schwarmplaner-prod-envfile`), nginx, Docker, `lib/runtime-container.nix`.
 
-**Used by:** `configuration.nix` (`prod` instance), GitHub Actions via unprivileged `deploy` SSH keys.
+**Image pin:** `environments/schwarmplaner-prod.nix`. Runtime tag: `/var/lib/schwarmplaner/deploy/prod-image`.
+
+**Used by:** `configuration.nix` (prod only), GitHub Actions via `deployAuthorizedKeys`.

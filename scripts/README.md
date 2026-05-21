@@ -7,8 +7,8 @@ Installed on the host via NixOS modules (`lib/runtime-container.nix`). Logic is 
 | Command | Usage |
 |---------|--------|
 | `pretix-restart-container` | `pretix-restart-container prod [tag]` |
-| `schwarmplaner-restart-container` | `schwarmplaner-restart-container <test\|prod> [tag]` |
-| `99trees-restart-container` | `99trees-restart-container <test\|prod> [tag]` |
+| `schwarmplaner-restart-container` | `schwarmplaner-restart-container prod [tag]` |
+| `99trees-restart-container` | `99trees-restart-container prod [tag]` |
 
 Without `[tag]`, the tag is read from `/var/lib/<app>/deploy/<env>-image`.
 
