@@ -91,18 +91,6 @@ in
           schedule = "02:45";
         };
 
-        schwarmplaner-test = {
-          enable = true;
-          type = "files";
-          paths = [ "/var/lib/schwarmplaner-test/data" ];
-          excludePaths = [
-            "*.db-journal"
-            "*.db-wal"
-            "*.db-shm"
-          ];
-          schedule = "02:50";
-        };
-
         trees99-prod = {
           enable = true;
           type = "files";

@@ -5,6 +5,8 @@
 ## 🐛 Bug Fixes
 - Quote `EXTRA_RUN_ARGS` in restart scripts so Pretix `-v …pretix.cfg` volume mounts work under systemd.
 - App CI deploys no longer restart `oci-containers` units with a stale Nix-baked image tag after `docker pull`.
+- Remove Schwarmplaner test instance (no DNS/stage); fixes ACME NXDOMAIN and missing `test-latest` image pull.
+- Drop obsolete `legacy_position` from Alloy journal config (Alloy 1.8 on nixos-25.05).
 
 ## 🔧 Improvements
 - Pin Pretix Git SSOT to `manulinger/zv-ticketing:pretix` until pretix-v* CI tags are routine.

@@ -312,11 +312,6 @@ in
           forward_to    = [loki.write.loki.receiver]
           relabel_rules = loki.relabel.journal.rules
           labels        = { job = "systemd-journal" }
-
-          legacy_position {
-            file = "/tmp/positions.yaml"
-            name = "journal"
-          }
         }
 
         loki.write "loki" {

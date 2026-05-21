@@ -59,7 +59,6 @@
           ./configuration.nix
           ./environments/pretix.nix
           ./environments/schwarmplaner-prod.nix
-          ./environments/schwarmplaner-test.nix
           ./environments/99trees-prod.nix
           disko.nixosModules.disko
           sops-nix.nixosModules.sops

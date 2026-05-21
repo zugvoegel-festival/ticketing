@@ -6,4 +6,4 @@
 
 **Depends on:** sops-nix (per-instance env secrets), nginx, Docker.
 
-**Used by:** `configuration.nix` (`prod` / `test` instances), GitHub Actions via unprivileged `deploy` SSH keys.
+**Used by:** `configuration.nix` (`prod` instance), GitHub Actions via unprivileged `deploy` SSH keys.
