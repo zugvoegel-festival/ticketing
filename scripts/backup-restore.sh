@@ -70,7 +70,7 @@ validate_service() {
 
 get_repo_url() {
     local service="$1"
-    echo "@s3BaseUrl@/@bucketPrefix@/${service}"
+    echo "@s3BaseUrl@/@bucketPrefix@-${service}"
 }
 
 setup_restic_env() {

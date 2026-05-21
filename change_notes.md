@@ -3,6 +3,7 @@
 - Runtime container image pins: `<app>-restart-container` scripts, `/var/lib/<app>/deploy/<env>-image`, activation sync from `environments/*.nix`.
 
 ## 🐛 Bug Fixes
+- Align `backup-restore` S3 repository URL with restic module (`${bucketPrefix}-${service}`, not slash path).
 - Quote `EXTRA_RUN_ARGS` in restart scripts so Pretix `-v …pretix.cfg` volume mounts work under systemd.
 - App CI deploys no longer restart `oci-containers` units with a stale Nix-baked image tag after `docker pull`.
 - Remove Schwarmplaner test instance (no DNS/stage); fixes ACME NXDOMAIN and missing `test-latest` image pull.
