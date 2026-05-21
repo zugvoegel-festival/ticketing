@@ -1,0 +1,56 @@
+name: Update Nix flake lock
+
+# Weekly nixpkgs input refresh — opens a PR with flake.lock only.
+
+on:
+  schedule:
+    - cron: '0 2 * * 1' # Monday 02:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-flake:
+    name: Bump flake.lock (nixos-25.05)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Update flake inputs
+        run: nix flake update
+
+      - name: Capture nixpkgs revision
+        id: nixpkgs
+        run: |
+          REV=$(nix flake metadata --json | node -e "
+            const d = JSON.parse(require('fs').readFileSync(0,'utf8'));
+            const locked = d.locks?.nodes?.nixpkgs?.locked?.rev ?? 'unknown';
+            console.log(locked);
+          ")
+          echo "rev=$REV" >> $GITHUB_OUTPUT
+          echo "nixpkgs locked revision: $REV"
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automation/flake-update
+          delete-branch: true
+          title: 'chore(deploy): weekly nixpkgs flake update'
+          commit-message: 'chore(deploy): update flake.lock'
+          body: |
+            Automated weekly update of `flake.lock` (nixpkgs pin on `nixos-25.05`).
+
+            **nixpkgs revision:** `${{ steps.nixpkgs.outputs.rev }}`
+
+            ## Review checklist
+            - [ ] `nix flake check` locally
+            - [ ] Merge when ready; apply on host with `./update-and-deploy.sh` during the monthly maintenance window (or sooner for security fixes)
+
+            Does **not** deploy automatically — merge then run `./update-and-deploy.sh` on `pretix-server-01`.

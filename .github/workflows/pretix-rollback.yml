@@ -1,0 +1,93 @@
+name: Rollback Pretix Docker image
+
+# Manual: re-point pretix-latest at a known-good immutable tag, pull + restart.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Immutable image tag to roll back TO (e.g. 1.2.0 or pretix)'
+        required: true
+        type: string
+      skip_health_check:
+        description: 'Skip HTTP health verification (emergency only)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: manulinger/zv-ticketing
+  SERVER_HOST_DEFAULT: 185.232.69.172
+  SERVER_HOST_ALIAS: pretix-server-01
+  HEALTH_URL: https://tickets.zugvoegelfestival.org/
+
+jobs:
+  rollback:
+    name: Rollback Pretix → ${{ github.event.inputs.version }}
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+
+    steps:
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          if [ -z "${{ secrets.SSH_KNOWN_HOSTS }}" ]; then
+            echo "::error::SSH_KNOWN_HOSTS secret is required"
+            exit 1
+          fi
+          SSH_HOST="${{ secrets.SSH_HOST }}"
+          [ -z "$SSH_HOST" ] && SSH_HOST="${{ env.SERVER_HOST_DEFAULT }}"
+          {
+            echo "Host ${{ env.SERVER_HOST_ALIAS }}"
+            echo "  HostName $SSH_HOST"
+            echo "  User deploy"
+            echo "  StrictHostKeyChecking yes"
+          } >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Verify SSH connection
+        run: ssh ${{ env.SERVER_HOST_ALIAS }} "echo 'SSH OK'"
+
+      - name: Pre-rollback backup
+        run: |
+          ssh ${{ env.SERVER_HOST_ALIAS }} "sudo pretix-deploy-backup rollback-pre-${{ github.event.inputs.version }}"
+
+      - name: Re-tag floating pointer on registry
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          SRC="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+          DST="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pretix-latest"
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker pull "$SRC"
+          docker tag "$SRC" "$DST"
+          docker push "$DST"
+
+      - name: Pull immutable tag and restart on host
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+          ssh ${{ env.SERVER_HOST_ALIAS }} "sudo docker pull $IMAGE && sudo systemctl restart docker-pretix.service"
+
+      - name: Wait for service
+        run: sleep 15
+
+      - name: Health check
+        if: ${{ github.event.inputs.skip_health_check != true && github.event.inputs.skip_health_check != 'true' }}
+        run: |
+          curl -sf --retry 8 --retry-delay 5 --retry-connrefused -o /dev/null -w '%{http_code}\n' "${{ env.HEALTH_URL }}" | grep -qE '^(200|301|302)$'
+
+      - name: Summary
+        run: |
+          echo "## Rollback Pretix → \`${{ github.event.inputs.version }}\`" >> $GITHUB_STEP_SUMMARY

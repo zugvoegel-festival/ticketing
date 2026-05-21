@@ -1,5 +1,5 @@
 ## 🎉 What's New
-- 
+- Pretix Docker build/deploy/rollback GitHub Actions and weekly flake-update PR workflow.
 
 ## 🐛 Bug Fixes
 - 
