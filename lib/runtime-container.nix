@@ -57,7 +57,7 @@ in
             DATA_VOLUME="${i.dataVolume}"
             ENV_FILE="${i.envFile}"
             NETWORK="${i.network}"
-            EXTRA_RUN_ARGS=${i.extraRunArgs or ""}
+            EXTRA_RUN_ARGS='${i.extraRunArgs or ""}'
             ;;
         ''
       ) instances;

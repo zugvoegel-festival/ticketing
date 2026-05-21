@@ -4,7 +4,8 @@
   zugvoegel.services.pretix = {
     host = "tickets.zugvoegelfestival.org";
     instanceName = "Zugvoegel Ticketshop";
-    pretixImage = "manulinger/zv-ticketing:pretix-latest";
+    # Exists on Docker Hub / host today; immutable pretix-v* tags via ticketing CI later.
+    pretixImage = "manulinger/zv-ticketing:pretix";
     acmeMail = "webmaster@zugvoegelfestival.org";
     pretixDataPath = "/var/lib/pretix-data/data";
     port = 12345;
