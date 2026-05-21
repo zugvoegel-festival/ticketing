@@ -15,13 +15,11 @@ in
 
     services.pretix = {
       enable = true;
-      host = "tickets.zugvoegelfestival.org";
-      instanceName = "Zugvoegel Ticketshop";
-      pretixImage = "manulinger/zv-ticketing:pretix";
-      acmeMail = "webmaster@zugvoegelfestival.org";
-      pretixDataPath = "/var/lib/pretix-data/data";
-      port = 12345;
+      # SSH pubkey for pretix GitHub Actions (private key → SSH_PRIVATE_KEY in ticketing repo).
+      # Generate: ssh-keygen -t ed25519 -C "github-actions-pretix" -f /tmp/pretix-deploy-key -N ""
+      deployAuthorizedKeys = [ ];
     };
+
     services.schwarmplaner = {
       enable = true;
 
@@ -31,40 +29,15 @@ in
       deployAuthorizedKeys = [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA/42RUXxK9qOKr5yOjOL9rNpeEMuaTQ8zJjsHi5nRHa github-actions-schwarmplaner"
       ];
-
-      instances = {
-        prod = {
-          host = "schwarmplaner.zugvoegelfestival.org";
-          app-image = "manulinger/schwarmplaner:prod-latest";
-          acmeMail = "webmaster@zugvoegelfestival.org";
-          port = 3303;
-        };
-        test = {
-          host = "test.schwarmplaner.zugvoegelfestival.org";
-          app-image = "manulinger/schwarmplaner:test-latest";
-          acmeMail = "webmaster@zugvoegelfestival.org";
-          port = 3313;
-        };
-      };
     };
 
     services.trees99 = {
       enable = true;
 
       # SSH pubkey for 99trees GitHub Actions (private key → SSH_PRIVATE_KEY secret).
-      # Generate: ssh-keygen -t ed25519 -C "github-actions-99trees" -f /tmp/99trees-deploy-key -N ""
       deployAuthorizedKeys = [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGCCjSkw16myEa5z5BW+Ol/0ACNFgXYC4JonMEpkXnaD github-actions-99trees"
       ];
-
-      instances = {
-        prod = {
-          host = "trees.loco.vision";
-          app-image = "manulinger/99trees:prod-latest";
-          acmeMail = "webmaster@zugvoegelfestival.org";
-          port = 3323;
-        };
-      };
     };
 
     services.wedding-catcher = {
@@ -106,9 +79,6 @@ in
           schedule = "03:00";
         };
 
-        # Schwarmplaner now ships a single Docker container with an
-        # SQLite file mounted at /var/lib/schwarmplaner-<env>/data. The
-        # daily file backups below replace the legacy MySQL dump.
         schwarmplaner-prod = {
           enable = true;
           type = "files";
@@ -150,8 +120,6 @@ in
     services.monitoring = {
       enable = true;
       grafanaHost = "grafana-test.loco.vision";
-      #    prometheusHost = "prometheus.loco.vision";
-      #   lokiHost = "loki.loco.vision";
       acmeMail = "webmaster@zugvoegelfestival.org";
       grafanaPort = 4000;
       lokiPort = 4001;
@@ -159,7 +127,6 @@ in
       alloyPort = 4003;
       openFirewall = false;
 
-      # Authentication configuration
       grafanaAuth = {
         adminUser = "admin";
         adminEmail = "webmaster@zugvoegelfestival.org";
@@ -168,18 +135,15 @@ in
     };
   };
 
-  sops.defaultSopsFile = ./secrets/secrets.yaml; # "Install" git
+  sops.defaultSopsFile = ./secrets/secrets.yaml;
 
-  # System packages and admin scripts
   environment.systemPackages = [
     pkgs.git
   ];
 
-  # Time zone and internationalisation
   time.timeZone = "Europe/Berlin";
   i18n.defaultLocale = "en_US.UTF-8";
 
-  # Networking and SSH
   networking = {
     firewall.enable = true;
     firewall.interfaces.eth0.allowedTCPPorts = [
@@ -194,24 +158,41 @@ in
     interfaces.eth0.useDHCP = true;
   };
 
-  # User configuration
   users.users.root.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILSJJs01RqXS6YE5Jf8LUJoJVBxFev3R18FWXJyLeYJE"
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIm11sPvZgi/QiLaB61Uil4bJzpoz0+AWH2CHH2QGiPm" # Netcup demo key github
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBGCmCMCN1BuYW2xCVTdXlNIILbJABp0MPgjc2rYMq9K" # Manu
   ];
 
-  # Note: GitHub Actions deploy keys (schwarmplaner, 99trees) are NOT root keys.
-  # They are wired into the shared unprivileged "deploy" user with narrowly
-  # scoped sudoers via services.schwarmplaner.deployAuthorizedKeys and
-  # services.trees99.deployAuthorizedKeys.
+  # Shared deploy user for app CI (schwarmplaner, 99trees, pretix). Pubkeys come from
+  # each service's deployAuthorizedKeys; sudo rules stay in the service modules.
+  users.users.deploy = let
+    deployKeys =
+      config.zugvoegel.services.pretix.deployAuthorizedKeys
+      ++ config.zugvoegel.services.schwarmplaner.deployAuthorizedKeys
+      ++ config.zugvoegel.services.trees99.deployAuthorizedKeys;
+  in
+  lib.mkIf (deployKeys != [ ]) {
+    isNormalUser = true;
+    description = "GitHub Actions deployment user";
+    home = "/var/lib/deploy";
+    createHome = true;
+    shell = pkgs.bashInteractive;
+    openssh.authorizedKeys.keys = lib.unique deployKeys;
+  };
 
-  # Enable ssh
   services.openssh = {
     enable = true;
     settings.PasswordAuthentication = false;
     settings.PermitRootLogin = "prohibit-password";
   };
+
+  # Automatic store GC and bounded boot generations
+  nix.gc = {
+    automatic = true;
+    options = "--delete-older-than 30d";
+  };
+  boot.loader.grub.configurationLimit = 5;
 
   system.stateVersion = "23.05";
 }

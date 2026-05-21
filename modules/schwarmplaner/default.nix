@@ -320,15 +320,6 @@ in
       deployBackupScript
     ];
 
-    users.users.deploy = mkIf (cfg.deployAuthorizedKeys != [ ]) {
-      isNormalUser = true;
-      description = "GitHub Actions deployment user (schwarmplaner)";
-      home = "/var/lib/deploy";
-      createHome = true;
-      shell = pkgs.bashInteractive;
-      openssh.authorizedKeys.keys = cfg.deployAuthorizedKeys;
-    };
-
     # Sudoers gotchas observed on NixOS 25.11 / sudo 1.9.17:
     #   1. `:` and `=` inside command args MUST be backslash-escaped (sudoers
     #      treats them as tag/option separators). NixOS does not auto-escape

@@ -123,7 +123,7 @@ in
         GitHub Actions workflows. Requires the deploy user (e.g. from
         schwarmplaner). Grants narrow sudo for:
           - docker pull manulinger/99trees *
-          - systemctl restart docker-99trees-{test,prod}.service
+          - systemctl restart docker-99trees-prod.service
           - 99trees-deploy-backup <env> [label]
       '';
     };
@@ -282,10 +282,6 @@ in
       deployBackupScript
     ];
 
-    users.users.deploy = mkIf (cfg.deployAuthorizedKeys != [ ]) {
-      openssh.authorizedKeys.keys = cfg.deployAuthorizedKeys;
-    };
-
     security.sudo.extraRules = mkIf (cfg.deployAuthorizedKeys != [ ]) [
       {
         users = [ "deploy" ];
@@ -296,10 +292,6 @@ in
           }
           {
             command = ''/run/current-system/sw/bin/docker pull docker.io/manulinger/99trees\:*'';
-            options = [ "NOPASSWD" ];
-          }
-          {
-            command = "/run/current-system/sw/bin/systemctl restart docker-99trees-test.service";
             options = [ "NOPASSWD" ];
           }
           {

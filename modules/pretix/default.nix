@@ -7,6 +7,34 @@
 with lib;
 let
   cfg = config.zugvoegel.services.pretix;
+
+  deployBackupScript = pkgs.writeShellScriptBin "pretix-deploy-backup" ''
+    set -euo pipefail
+    umask 077
+
+    LABEL="''${1:-predeploy}"
+    BACKUP_DIR="/var/backups/pretix-deploy"
+    TS=$(date +%Y-%m-%d-%H%M%S)
+    NAME="pretix-$LABEL-$TS.tar.gz"
+
+    ${pkgs.coreutils}/bin/install -d -m 0700 -o root -g root "$BACKUP_DIR"
+
+    ${pkgs.systemd}/bin/systemctl stop docker-pretix.service || true
+
+    if [ -d /var/lib/pretix-data/data ]; then
+      ${pkgs.gnutar}/bin/tar -czf "$BACKUP_DIR/$NAME" -C /var/lib/pretix-data data
+      ${pkgs.coreutils}/bin/chmod 0600 "$BACKUP_DIR/$NAME"
+      SIZE=$(${pkgs.coreutils}/bin/du -h "$BACKUP_DIR/$NAME" | ${pkgs.coreutils}/bin/cut -f1)
+      echo "Backup: $BACKUP_DIR/$NAME ($SIZE)"
+    else
+      echo "(no pretix data directory yet — skipping tar)"
+    fi
+
+    ${pkgs.systemd}/bin/systemctl start docker-pretix.service || true
+
+    cd "$BACKUP_DIR"
+    ls -t pretix-*.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm -f || true
+  '';
 in
 {
   options.zugvoegel.services.pretix = {
@@ -60,6 +88,19 @@ in
         Keep false on production hosts.
       '';
     };
+
+    deployAuthorizedKeys = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      example = [ "ssh-ed25519 AAAA... github-actions-pretix" ];
+      description = ''
+        SSH public keys merged into the shared `deploy` user for pretix
+        GitHub Actions workflows in the ticketing repo. Grants narrow sudo for:
+          - docker pull manulinger/zv-ticketing *
+          - systemctl restart docker-pretix.service
+          - pretix-deploy-backup [label]
+      '';
+    };
   };
 
   config = mkIf cfg.enable {
@@ -83,7 +124,13 @@ in
               ${pkgs.docker}/bin/docker system prune -a
             '';
       in
-      [ restart-all-pretix ] ++ optional cfg.enableDangerousMaintenanceTools nuke-docker;
+      [ restart-all-pretix ]
+      ++ optional cfg.enableDangerousMaintenanceTools nuke-docker
+      ++ optional (cfg.deployAuthorizedKeys != [ ]) deployBackupScript;
+
+    systemd.tmpfiles.rules = mkIf (cfg.deployAuthorizedKeys != [ ]) [
+      "d /var/backups/pretix-deploy 0700 root root -"
+    ];
 
     sops.secrets.pretix-envfile = { };
 
@@ -179,5 +226,33 @@ in
         '';
       };
     };
+
+    security.sudo.extraRules = mkIf (cfg.deployAuthorizedKeys != [ ]) [
+      {
+        users = [ "deploy" ];
+        commands = [
+          {
+            command = ''/run/current-system/sw/bin/docker pull manulinger/zv-ticketing\:*'';
+            options = [ "NOPASSWD" ];
+          }
+          {
+            command = ''/run/current-system/sw/bin/docker pull docker.io/manulinger/zv-ticketing\:*'';
+            options = [ "NOPASSWD" ];
+          }
+          {
+            command = "/run/current-system/sw/bin/systemctl restart docker-pretix.service";
+            options = [ "NOPASSWD" ];
+          }
+          {
+            command = "/run/current-system/sw/bin/pretix-deploy-backup";
+            options = [ "NOPASSWD" ];
+          }
+          {
+            command = "/run/current-system/sw/bin/pretix-deploy-backup *";
+            options = [ "NOPASSWD" ];
+          }
+        ];
+      }
+    ];
   };
 }

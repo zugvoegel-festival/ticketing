@@ -1,7 +1,7 @@
 {
   description = "Pretix flake configuration";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
 
     bank-automation.url = "github:zugvoegel-festival/pretix-bank-automation";
 
@@ -34,6 +34,10 @@
         specialArgs = inputs;
         modules = [
           ./configuration.nix
+          ./environments/pretix.nix
+          ./environments/schwarmplaner-prod.nix
+          ./environments/schwarmplaner-test.nix
+          ./environments/99trees-prod.nix
           disko.nixosModules.disko
           sops-nix.nixosModules.sops
           { imports = builtins.attrValues self.nixosModules; }

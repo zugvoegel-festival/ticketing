@@ -1,13 +1,41 @@
 #!/usr/bin/env bash
-# update-and-deploy.sh
-# Updates flake inputs and deploys the new version to the server
+# deploy.sh
+# Deploys the pinned flake to the server without updating inputs.
 
 set -euo pipefail
 
+ACTION="switch"
 
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --boot)
+      ACTION="boot"
+      shift
+      ;;
+    --switch)
+      ACTION="switch"
+      shift
+      ;;
+    -h|--help)
+      cat <<'EOF'
+Usage: ./deploy.sh [--switch|--boot]
 
-echo "Deploying new version to server..."
-echo "Entering nix-shell for nixos-rebuild..."
-nix-shell -p nixos-rebuild --run "nixos-rebuild switch --flake '.#pretix-server-01' --target-host root@185.232.69.172 --build-host root@185.232.69.172  --option eval-cache false"
+Options:
+  --switch   Deploy and activate immediately (default).
+  --boot     Build/set next boot generation; activate on reboot.
+EOF
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      echo "Use --help to see available options." >&2
+      exit 1
+      ;;
+  esac
+done
+
+echo "Deploying pinned flake to pretix-server-01..."
+echo "Entering nix-shell for nixos-rebuild ($ACTION)..."
+nix-shell -p nixos-rebuild --run "nixos-rebuild ${ACTION} --flake '.#pretix-server-01' --target-host root@185.232.69.172 --build-host root@185.232.69.172 --option eval-cache false"
 
 echo "Deployment complete."
