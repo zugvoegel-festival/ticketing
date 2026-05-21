@@ -95,7 +95,7 @@
                         "type": "prometheus",
                         "uid": "PBFA97CFB590B2093"
                     },
-                    "expr": "node_systemd_unit_state{name=\"docker-pretix.service\", state=\"active\"}",
+                    "expr": "node_systemd_unit_state{name=\"pretix-container.service\", state=\"active\"}",
                     "legendFormat": "Pretix Ticketing",
                     "refId": "A"
                 },

@@ -73,12 +73,11 @@ jobs:
           docker tag "$SRC" "$DST"
           docker push "$DST"
 
-      - name: Pull immutable tag and restart on host
+      - name: Roll back runtime image and restart
         env:
           VERSION: ${{ github.event.inputs.version }}
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
-          ssh ${{ env.SERVER_HOST_ALIAS }} "sudo docker pull $IMAGE && sudo systemctl restart docker-pretix.service"
+          ssh ${{ env.SERVER_HOST_ALIAS }} "sudo pretix-restart-container prod $VERSION"
 
       - name: Wait for service
         run: sleep 15

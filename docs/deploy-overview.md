@@ -12,7 +12,14 @@ Operator checklist: [`runbook.md`](runbook.md).
 | **99trees** | App + CI (production only) |
 | **zugvoegel-festival/pretix** | Pretix Dockerfile source (built by `pretix-build.yml` here) |
 
-**App releases (Docker)** do not run `nixos-rebuild` from CI. Actions SSH as `deploy`, back up data, pull the **immutable** image tag, and restart the container unit.
+**App releases (Docker)** do not run `nixos-rebuild` from CI. Actions SSH as `deploy`, back up data, and run `<app>-restart-container <env> <tag>` (writes `/var/lib/<app>/deploy/<env>-image`, `docker pull`, `docker run`).
+
+**Two image truths:**
+
+| Layer | Location | Updated by |
+|-------|----------|------------|
+| Git SSOT | `environments/*.nix` → `app-image` / `pretixImage` | Release scripts, PR review |
+| Runtime SSOT | `/var/lib/<app>/deploy/<env>-image` (tag only) | CI deploy/rollback; reconciled on `./deploy.sh` if missing/stale |
 
 **Host / module changes** (nginx, monitoring, secrets, nixpkgs, image pins in Nix) are deployed manually:
 
@@ -48,7 +55,7 @@ App release scripts in **schwarmplaner** / **99trees** commit+push pin updates t
 1. Update `environments/pretix.nix` with the target immutable tag (or let CI derive from tag).
 2. Create and push tag `pretix-vX.Y.Z` on **this repo**.
 3. `pretix-build.yml` builds from `zugvoegel-festival/pretix@main` → pushes `:X.Y.Z` + `:pretix-latest`.
-4. `pretix-deploy.yml` backs up, pulls immutable tag, restarts `docker-pretix.service`, checks HTTPS.
+4. `pretix-deploy.yml` backs up, runs `pretix-restart-container prod <tag>`, checks HTTPS.
 
 Rollback: Actions → *Rollback Pretix Docker image* → enter immutable tag.
 

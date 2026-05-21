@@ -45,7 +45,7 @@ Zwei Schichten:
 | Schicht | Verantwortung | Deploy |
 |---------|---------------|--------|
 | **Host / Module** | nginx, Docker-Units, Secrets, Monitoring, Pins in Nix | `./deploy.sh` oder `./update-and-deploy.sh` |
-| **App-Container** | Immutable Docker-Tags | CI in App-Repo (oder Pretix-CI hier) → SSH `deploy` → Backup → pull → restart |
+| **App-Container** | Immutable Docker-Tags | CI → SSH `deploy` → Backup → `<app>-restart-container <env> <tag>` (Runtime-Pin unter `/var/lib/<app>/deploy/`) |
 
 **Dokumentation:**
 
@@ -108,7 +108,8 @@ App-Repos haben **eigene** `SSH_*` Secrets für Schwarmplaner/99trees.
 2. *„Generiere Anleitung für Pretix `deployAuthorizedKeys`: Key-Paar erstellen, Nix eintragen, Secret-Namen dokumentieren — ohne Private Keys ins Repo."*
 3. *„Prüfe `modules/pretix/default.nix` sudo-Regeln und vergleiche mit dem Vocura-Muster in vocura-org/vocura."*
 4. *„Führe lokal `nix flake check` aus und behebe Eval-Fehler in `environments/*.nix`."*
-5. *„Nach `./deploy.sh`: Verifiziere systemd-Units `docker-{pretix,schwarmplaner-test,schwarmplaner-prod,99trees-prod}.service`."*
+5. *„Nach `./deploy.sh`: Verifiziere `pretix-container`, `schwarmplaner-{test,prod}-container`, `99trees-prod-container` und Runtime-Dateien unter `/var/lib/*/deploy/`."*
+6. *„App-Repos (schwarmplaner/99trees): CI auf `schwarmplaner-restart-container` / `99trees-restart-container` umstellen (statt `systemctl restart docker-*`)."*
 
 ## 7. Abhängigkeiten zu anderen Repos
 

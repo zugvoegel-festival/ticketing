@@ -95,13 +95,11 @@ jobs:
         run: |
           ssh ${{ env.SERVER_HOST_ALIAS }} "sudo pretix-deploy-backup predeploy-v${{ steps.docker-tag.outputs.tag }}"
 
-      - name: Pull image and restart pretix container
+      - name: Deploy image (runtime pin + restart)
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.docker-tag.outputs.tag }}"
-          echo "Pulling $IMAGE..."
-          ssh ${{ env.SERVER_HOST_ALIAS }} "sudo docker pull $IMAGE"
-          echo "Restarting docker-pretix.service..."
-          ssh ${{ env.SERVER_HOST_ALIAS }} "sudo systemctl restart docker-pretix.service"
+          TAG="${{ steps.docker-tag.outputs.tag }}"
+          echo "Deploying pretix prod → $TAG"
+          ssh ${{ env.SERVER_HOST_ALIAS }} "sudo pretix-restart-container prod $TAG"
 
       - name: Wait for service
         run: sleep 15

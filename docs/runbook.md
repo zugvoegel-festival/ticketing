@@ -17,13 +17,13 @@ Use `./update-and-deploy.sh` when bumping `flake.lock` (nixpkgs on `nixos-25.05`
 
 ## App releases (no nixos-rebuild)
 
-| App | Tag / trigger | Pin file |
-|-----|----------------|----------|
-| Pretix | `pretix-v*.*.*` in **ticketing** | `environments/pretix.nix` |
-| Schwarmplaner | `v*.*.*` / `test-*` in **schwarmplaner** | `environments/schwarmplaner-{prod,test}.nix` |
-| 99trees | `v*.*.*` in **99trees** (prod only) | `environments/99trees-prod.nix` |
+| App | Tag / trigger | Git pin | Runtime file | Restart command |
+|-----|----------------|---------|----------------|-----------------|
+| Pretix | `pretix-v*.*.*` in **ticketing** | `environments/pretix.nix` | `/var/lib/pretix/deploy/prod-image` | `pretix-restart-container prod [tag]` |
+| Schwarmplaner | `v*.*.*` / `test-*` in **schwarmplaner** | `environments/schwarmplaner-{prod,test}.nix` | `/var/lib/schwarmplaner/deploy/<env>-image` | `schwarmplaner-restart-container <env> [tag]` |
+| 99trees | `v*.*.*` in **99trees** (prod only) | `environments/99trees-prod.nix` | `/var/lib/99trees/deploy/prod-image` | `99trees-restart-container prod [tag]` |
 
-Schwarmplaner / 99trees release scripts commit pin updates here (`TICKETING_REPO` in app repos).
+Schwarmplaner / 99trees release scripts commit pin updates here (`TICKETING_REPO` in app repos). CI passes the tag to the restart script; `./deploy.sh` reconciles runtime files from Git when they drift.
 
 ## Pretix release
 

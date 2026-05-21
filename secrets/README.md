@@ -95,7 +95,7 @@ expects one SOPS env-file per instance (`schwarmplaner-prod-envfile`,
    ```
 
    GitHub Actions will build the image, push it to Docker Hub, SSH in, pull,
-   and `systemctl restart docker-schwarmplaner-test.service`.
+   and `schwarmplaner-restart-container test <tag>` (runtime image pin).
 
 ## 99trees (Zugvögel field game)
 

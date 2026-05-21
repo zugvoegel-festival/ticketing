@@ -8,6 +8,30 @@ with lib;
 let
   cfg = config.zugvoegel.services.pretix;
 
+  runtimeContainer = import ../../lib/runtime-container.nix { inherit lib pkgs; };
+
+  pretixConfig = import ./pretix-cfg.nix { inherit pkgs cfg; };
+
+  pretixDeployDir = "/var/lib/pretix/deploy";
+
+  pretixRestartScript = runtimeContainer.mkRestartContainerScript {
+    scriptName = "pretix-restart-container";
+    deployDir = pretixDeployDir;
+    imageRepo = "manulinger/zv-ticketing";
+    instances = [
+      {
+        env = "prod";
+        containerName = "pretix";
+        hostPort = cfg.port;
+        containerPort = 80;
+        dataVolume = "${cfg.pretixDataPath}:/data";
+        envFile = config.sops.secrets.pretix-envfile.path;
+        network = "pretix-net";
+        extraRunArgs = "-v ${pretixDeployDir}/pretix.cfg:/etc/pretix/pretix.cfg:ro";
+      }
+    ];
+  };
+
   deployBackupScript = pkgs.writeShellScriptBin "pretix-deploy-backup" ''
     set -euo pipefail
     umask 077
@@ -16,10 +40,11 @@ let
     BACKUP_DIR="/var/backups/pretix-deploy"
     TS=$(date +%Y-%m-%d-%H%M%S)
     NAME="pretix-$LABEL-$TS.tar.gz"
+    DOCKER="${pkgs.docker}/bin/docker"
 
     ${pkgs.coreutils}/bin/install -d -m 0700 -o root -g root "$BACKUP_DIR"
 
-    ${pkgs.systemd}/bin/systemctl stop docker-pretix.service || true
+    "$DOCKER" stop pretix 2>/dev/null || true
 
     if [ -d /var/lib/pretix-data/data ]; then
       ${pkgs.gnutar}/bin/tar -czf "$BACKUP_DIR/$NAME" -C /var/lib/pretix-data data
@@ -30,7 +55,7 @@ let
       echo "(no pretix data directory yet — skipping tar)"
     fi
 
-    ${pkgs.systemd}/bin/systemctl start docker-pretix.service || true
+    ${pretixRestartScript}/bin/pretix-restart-container prod || true
 
     cd "$BACKUP_DIR"
     ls -t pretix-*.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm -f || true
@@ -38,10 +63,8 @@ let
 in
 {
   options.zugvoegel.services.pretix = {
-    # Define option to enable the pretix config
     enable = mkEnableOption "Pretix ticketing service";
 
-    # Define option to set the host
     host = mkOption {
       type = types.str;
       example = "demo.megaclan3000.de";
@@ -52,7 +75,11 @@ in
       type = types.str;
       default = "manulinger/zv-ticketing:pretix-cliques";
       example = "manulinger/zv-ticketing:pretix-cliques";
-      description = "Docker image with tag to deploy for pretix";
+      description = ''
+        Git SSOT for the Pretix app image (registry/repo:tag). Bumped in
+        `environments/pretix.nix`. On nixos-rebuild, the tag is reconciled into
+        `/var/lib/pretix/deploy/prod-image`; CI uses `pretix-restart-container`.
+      '';
     };
 
     instanceName = mkOption {
@@ -67,6 +94,7 @@ in
       example = "admin@pretix.eu";
       description = "Email for SSL Certificate Renewal";
     };
+
     pretixDataPath = mkOption {
       type = types.str;
       default = "/var/lib/pretix-data/data";
@@ -96,8 +124,7 @@ in
       description = ''
         SSH public keys merged into the shared `deploy` user for pretix
         GitHub Actions workflows in the ticketing repo. Grants narrow sudo for:
-          - docker pull manulinger/zv-ticketing *
-          - systemctl restart docker-pretix.service
+          - pretix-restart-container prod [tag]
           - pretix-deploy-backup [label]
       '';
     };
@@ -105,16 +132,15 @@ in
 
   config = mkIf cfg.enable {
 
-    # Some helper scripts to help while debugging
     environment.systemPackages =
       let
         restart-all-pretix =
           pkgs.writeShellScriptBin "restart-all-pretix" # sh
             ''
-              systemctl stop docker-postgresql.service docker-pretix.service docker-redis.service
+              systemctl stop docker-postgresql.service docker-redis.service pretix-container.service
               systemctl restart init-pretix-net.service
               systemctl restart init-pretix-data.service
-              systemctl start docker-postgresql.service docker-pretix.service docker-redis.service
+              systemctl start docker-postgresql.service docker-redis.service pretix-container.service
             '';
 
         nuke-docker =
@@ -124,15 +150,40 @@ in
               ${pkgs.docker}/bin/docker system prune -a
             '';
       in
-      [ restart-all-pretix ]
+      [ restart-all-pretix pretixRestartScript ]
       ++ optional cfg.enableDangerousMaintenanceTools nuke-docker
       ++ optional (cfg.deployAuthorizedKeys != [ ]) deployBackupScript;
 
-    systemd.tmpfiles.rules = mkIf (cfg.deployAuthorizedKeys != [ ]) [
-      "d /var/backups/pretix-deploy 0700 root root -"
-    ];
+    systemd.tmpfiles.rules =
+      [
+        "d ${pretixDeployDir} 0755 root root -"
+      ]
+      ++ optionals (cfg.deployAuthorizedKeys != [ ]) [
+        "d /var/backups/pretix-deploy 0700 root root -"
+      ];
 
     sops.secrets.pretix-envfile = { };
+
+    system.activationScripts = mkMerge [
+      (runtimeContainer.mkSyncRuntimeImageActivation {
+        name = "pretixRuntimeImages";
+        deployDir = pretixDeployDir;
+        instances = [
+          {
+            env = "prod";
+            image = cfg.pretixImage;
+          }
+        ];
+      })
+      {
+        pretixRuntimeConfig = {
+          text = ''
+            install -d -m 0755 ${pretixDeployDir}
+            cp ${pretixConfig} ${pretixDeployDir}/pretix.cfg
+          '';
+        };
+      }
+    ];
 
     systemd.services.init-pretix-net = {
       description = "Create the network bridge pretix-net";
@@ -145,8 +196,6 @@ in
           dockercli = "${config.virtualisation.docker.package}/bin/docker";
         in
         ''
-          # Put a true at the end to prevent getting non-zero return code,
-          # which will crash the whole service.
           check=$(${dockercli} network ls | grep "pretix-net" || true)
           if [ -z "$check" ]; then
             ${dockercli} network create pretix-net
@@ -156,19 +205,33 @@ in
         '';
     };
 
-    systemd.services.docker-pretix.preStart =
-      let
-        dockercli = "${config.virtualisation.docker.package}/bin/docker";
-      in
-      ''
-        # Pull the latest image before starting
-        ${dockercli} pull ${cfg.pretixImage} || true
-        # Ensure data directory exists with correct permissions
+    systemd.services.pretix-container = {
+      description = "Pretix app container (runtime image pin)";
+      after = [
+        "docker.service"
+        "init-pretix-net.service"
+        "docker-postgresql.service"
+        "docker-redis.service"
+      ];
+      wants = [
+        "docker-postgresql.service"
+        "docker-redis.service"
+      ];
+      wantedBy = [ "multi-user.target" ];
+      path = [ config.virtualisation.docker.package ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      script = ''
         mkdir -p ${cfg.pretixDataPath} && chown -R 15371:15371 ${cfg.pretixDataPath}
+        ${pretixRestartScript}/bin/pretix-restart-container prod
       '';
+    };
 
+    # Sidecars stay declarative; the app image is runtime-pinned (see pretix-container).
     virtualisation.oci-containers = {
-      backend = "docker"; # Podman is the default backend.
+      backend = "docker";
       containers = {
         redis = {
           image = "redis:7.2.3";
@@ -184,24 +247,6 @@ in
           environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
           volumes = [ "/var/lib/pretix-postgresql/data:/var/lib/postgresql/data" ];
         };
-
-        pretix = {
-          image = cfg.pretixImage;
-          volumes =
-            let
-              pretix-config = import ./pretix-cfg.nix { inherit pkgs cfg; };
-            in
-            [
-              "${pretix-config}:/etc/pretix/pretix.cfg"
-              "${cfg.pretixDataPath}:/data"
-            ];
-          environmentFiles = [ config.sops.secrets.pretix-envfile.path ];
-          ports = [ "${toString cfg.port}:80" ];
-          extraOptions = [
-            "--network=pretix-net"
-            "--pull=always"
-          ];
-        };
       };
     };
 
@@ -210,7 +255,6 @@ in
       defaults.email = "${cfg.acmeMail}";
     };
 
-    # nginx reverse proxy
     services.nginx = {
       enable = true;
       recommendedProxySettings = true;
@@ -232,15 +276,11 @@ in
         users = [ "deploy" ];
         commands = [
           {
-            command = ''/run/current-system/sw/bin/docker pull manulinger/zv-ticketing\:*'';
+            command = "/run/current-system/sw/bin/pretix-restart-container";
             options = [ "NOPASSWD" ];
           }
           {
-            command = ''/run/current-system/sw/bin/docker pull docker.io/manulinger/zv-ticketing\:*'';
-            options = [ "NOPASSWD" ];
-          }
-          {
-            command = "/run/current-system/sw/bin/systemctl restart docker-pretix.service";
+            command = "/run/current-system/sw/bin/pretix-restart-container *";
             options = [ "NOPASSWD" ];
           }
           {

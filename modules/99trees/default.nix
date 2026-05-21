@@ -3,9 +3,41 @@ with lib;
 let
   cfg = config.zugvoegel.services.trees99;
 
+  runtimeContainer = import ../../lib/runtime-container.nix { inherit lib pkgs; };
+
+  trees99DeployDir = "/var/lib/99trees/deploy";
+
+  instanceNames = builtins.attrNames cfg.instances;
+
+  runtimeInstances =
+    map
+      (instanceName:
+        let
+          instanceConfig = cfg.instances.${instanceName};
+          secretPath = config.sops.secrets."99trees-${instanceName}-envfile".path;
+        in
+        {
+          env = instanceName;
+          image = instanceConfig.app-image;
+          containerName = "99trees-${instanceName}";
+          hostPort = instanceConfig.port;
+          containerPort = 3000;
+          dataVolume = "/var/lib/99trees-${instanceName}/data:/data";
+          envFile = secretPath;
+          network = "99trees-net";
+        }
+      )
+      instanceNames;
+
+  trees99RestartScript = runtimeContainer.mkRestartContainerScript {
+    scriptName = "99trees-restart-container";
+    deployDir = trees99DeployDir;
+    imageRepo = "manulinger/99trees";
+    instances = runtimeInstances;
+  };
+
   deployBackupScript = pkgs.writeShellScriptBin "99trees-deploy-backup" ''
     set -euo pipefail
-
     umask 077
 
     ENV="''${1:-}"
@@ -21,13 +53,14 @@ let
 
     DATA_DIR="/var/lib/99trees-$ENV"
     BACKUP_DIR="/var/backups/99trees-$ENV"
-    SERVICE="docker-99trees-$ENV.service"
+    CONTAINER="99trees-$ENV"
     TS=$(date +%Y-%m-%d-%H%M%S)
     NAME="99trees-$ENV-$LABEL-$TS.tar.gz"
+    DOCKER="${pkgs.docker}/bin/docker"
 
     ${pkgs.coreutils}/bin/install -d -m 0700 -o root -g root "$BACKUP_DIR"
 
-    ${pkgs.systemd}/bin/systemctl stop "$SERVICE" || true
+    "$DOCKER" stop "$CONTAINER" 2>/dev/null || true
 
     if [ -d "$DATA_DIR/data" ]; then
       ${pkgs.gnutar}/bin/tar -czf "$BACKUP_DIR/$NAME" -C "$DATA_DIR" data
@@ -38,31 +71,13 @@ let
       echo "(no data directory yet at $DATA_DIR/data — skipping tar)"
     fi
 
-    ${pkgs.systemd}/bin/systemctl start "$SERVICE" || true
+    ${trees99RestartScript}/bin/99trees-restart-container "$ENV" || true
 
     cd "$BACKUP_DIR"
     ls -t 99trees-"$ENV"-*.tar.gz 2>/dev/null \
       | tail -n +11 \
       | xargs -r rm -f || true
   '';
-
-  createContainer =
-    instanceName: instanceConfig: secretPath:
-    {
-      name = "99trees-${instanceName}";
-      value = {
-        image = instanceConfig.app-image;
-        ports = [ "${toString instanceConfig.port}:3000" ];
-        volumes = [
-          "/var/lib/99trees-${instanceName}/data:/data"
-        ];
-        environmentFiles = [ secretPath ];
-        extraOptions = [
-          "--pull=always"
-          "--network=99trees-net"
-        ];
-      };
-    };
 
   createDataDirService =
     instanceName: _instanceConfig:
@@ -71,7 +86,7 @@ let
       value = {
         description = "Create 99trees ${instanceName} data directory";
         wantedBy = [ "multi-user.target" ];
-        before = [ "docker-99trees-${instanceName}.service" ];
+        before = [ "99trees-${instanceName}-container.service" ];
         serviceConfig.Type = "oneshot";
         script = ''
           mkdir -p /var/lib/99trees-${instanceName}/data
@@ -79,6 +94,27 @@ let
           chmod 700 /var/lib/99trees-${instanceName}
           chmod 700 /var/lib/99trees-${instanceName}/data
         '';
+      };
+    };
+
+  createRuntimeContainerService =
+    instanceName:
+    {
+      name = "99trees-${instanceName}-container";
+      value = {
+        description = "99trees ${instanceName} app container (runtime image pin)";
+        after = [
+          "docker.service"
+          "init-99trees-net.service"
+          "init-99trees-${instanceName}-data-dir.service"
+        ];
+        wantedBy = [ "multi-user.target" ];
+        path = [ config.virtualisation.docker.package ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = "${trees99RestartScript}/bin/99trees-restart-container ${instanceName}";
       };
     };
 
@@ -120,10 +156,8 @@ in
       example = [ "ssh-ed25519 AAAA... github-actions-99trees" ];
       description = ''
         SSH public keys merged into the shared `deploy` user for 99trees
-        GitHub Actions workflows. Requires the deploy user (e.g. from
-        schwarmplaner). Grants narrow sudo for:
-          - docker pull manulinger/99trees *
-          - systemctl restart docker-99trees-prod.service
+        GitHub Actions workflows. Narrow sudo:
+          - 99trees-restart-container <test|prod> [tag]
           - 99trees-deploy-backup <env> [label]
       '';
     };
@@ -143,7 +177,10 @@ in
               type = types.nullOr types.str;
               default = null;
               example = "manulinger/99trees:prod-latest";
-              description = "Docker image (with tag) to run for this instance.";
+              description = ''
+                Git SSOT (registry/repo:tag). Reconciled to
+                `/var/lib/99trees/deploy/<env>-image` on nixos-rebuild.
+              '';
             };
 
             acmeMail = mkOption {
@@ -173,12 +210,12 @@ in
   };
 
   config = mkIf cfg.enable {
-    security.acme = mkIf (builtins.length (builtins.attrNames cfg.instances) > 0) {
+    security.acme = mkIf (instanceNames != [ ]) {
       acceptTerms = true;
       defaults.email =
         let
           mails = lib.filter (x: x != null) (
-            map (n: (builtins.getAttr n cfg.instances).acmeMail) (builtins.attrNames cfg.instances)
+            map (n: cfg.instances.${n}.acmeMail) instanceNames
           );
         in
         if mails != [ ] then builtins.head mails else "webmaster@zugvoegelfestival.org";
@@ -187,7 +224,7 @@ in
         map
           (instanceName:
             let
-              instanceConfig = builtins.getAttr instanceName cfg.instances;
+              instanceConfig = cfg.instances.${instanceName};
               aliases = instanceConfig.serverAliases or [ ];
             in
             if instanceConfig.host != null && aliases != [ ] then
@@ -201,7 +238,7 @@ in
             else
               { }
           )
-          (builtins.attrNames cfg.instances)
+          instanceNames
       );
     };
 
@@ -211,22 +248,28 @@ in
           name = "99trees-${instanceName}-envfile";
           value = { };
         })
-        (builtins.attrNames cfg.instances)
+        instanceNames
     );
 
     systemd.tmpfiles.rules =
-      map
+      [ "d ${trees99DeployDir} 0755 root root -" ]
+      ++ map
         (instanceName: "d /var/backups/99trees-${instanceName} 0700 root root -")
-        (builtins.attrNames cfg.instances);
+        instanceNames;
+
+    system.activationScripts = runtimeContainer.mkSyncRuntimeImageActivation {
+      name = "trees99RuntimeImages";
+      deployDir = trees99DeployDir;
+      instances = map (i: { env = i.env; image = i.image; }) runtimeInstances;
+    };
 
     systemd.services = lib.mkMerge [
       (builtins.listToAttrs (
         map
-          (instanceName:
-            createDataDirService instanceName (builtins.getAttr instanceName cfg.instances)
-          )
-          (builtins.attrNames cfg.instances)
+          (instanceName: createDataDirService instanceName cfg.instances.${instanceName})
+          instanceNames
       ))
+      (builtins.listToAttrs (map (n: createRuntimeContainerService n) instanceNames))
       {
         init-99trees-net = {
           description = "Create the docker network bridge 99trees-net";
@@ -249,53 +292,31 @@ in
       }
     ];
 
-    virtualisation.oci-containers = {
-      backend = "docker";
-      containers = builtins.listToAttrs (
-        map
-          (instanceName:
-            let
-              instanceConfig = builtins.getAttr instanceName cfg.instances;
-              secretName = "99trees-${instanceName}-envfile";
-              secretPath = builtins.getAttr secretName config.sops.secrets;
-            in
-            createContainer instanceName instanceConfig secretPath.path
-          )
-          (builtins.attrNames cfg.instances)
-      );
-    };
-
-    services.nginx = mkIf (builtins.length (builtins.attrNames cfg.instances) > 0) {
+    services.nginx = mkIf (instanceNames != [ ]) {
       enable = true;
       recommendedProxySettings = true;
       recommendedTlsSettings = true;
       virtualHosts = lib.mkMerge (
         map
-          (instanceName:
-            createNginxVirtualHost instanceName (builtins.getAttr instanceName cfg.instances)
-          )
-          (builtins.attrNames cfg.instances)
+          (instanceName: createNginxVirtualHost instanceName cfg.instances.${instanceName})
+          instanceNames
       );
     };
 
-    environment.systemPackages = mkIf (cfg.deployAuthorizedKeys != [ ]) [
-      deployBackupScript
-    ];
+    environment.systemPackages =
+      [ trees99RestartScript ]
+      ++ optional (cfg.deployAuthorizedKeys != [ ]) deployBackupScript;
 
     security.sudo.extraRules = mkIf (cfg.deployAuthorizedKeys != [ ]) [
       {
         users = [ "deploy" ];
         commands = [
           {
-            command = ''/run/current-system/sw/bin/docker pull manulinger/99trees\:*'';
+            command = "/run/current-system/sw/bin/99trees-restart-container";
             options = [ "NOPASSWD" ];
           }
           {
-            command = ''/run/current-system/sw/bin/docker pull docker.io/manulinger/99trees\:*'';
-            options = [ "NOPASSWD" ];
-          }
-          {
-            command = "/run/current-system/sw/bin/systemctl restart docker-99trees-prod.service";
+            command = "/run/current-system/sw/bin/99trees-restart-container *";
             options = [ "NOPASSWD" ];
           }
           {

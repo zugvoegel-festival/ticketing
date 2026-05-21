@@ -26,8 +26,8 @@ docs/BACKUP.md         # human ops: restic restore flow
 - Festival services use option namespace `zugvoegel.services.<name>` (see `modules/*/default.nix`).
 - New module: add `modules/<name>/default.nix` — picked up automatically by `flake.nix` (`readDir ./modules`).
 - Secrets: edit encrypted `secrets/secrets.yaml` with sops only; runtime via sops-nix (`/run/secrets/…`).
-- CI deploy (Pretix, Schwarmplaner, 99trees): unprivileged `deploy` user — not root SSH keys.
-- App image pins in `environments/*.nix`; host/module changes via `./deploy.sh`, container bumps via CI.
+- CI deploy (Pretix, Schwarmplaner, 99trees): unprivileged `deploy` user — `<app>-restart-container <env> [tag]` (runtime pin under `/var/lib/<app>/deploy/`), not `systemctl restart docker-*`.
+- App image pins in `environments/*.nix` (Git SSOT); host/module changes via `./deploy.sh` (reconciles runtime pins), container bumps via CI restart scripts.
 
 ## Docs
 
