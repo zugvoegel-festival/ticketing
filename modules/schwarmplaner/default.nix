@@ -44,9 +44,9 @@ let
     LABEL="''${2:-backup}"
 
     case "$ENV" in
-      test|prod) ;;
+      prod) ;;
       *)
-        echo "usage: schwarmplaner-deploy-backup <test|prod> [label]" >&2
+        echo "usage: schwarmplaner-deploy-backup prod [label]" >&2
         exit 1
         ;;
     esac
@@ -158,8 +158,8 @@ in
         SSH public keys for the unprivileged `deploy` user used by the
         schwarmplaner GitHub Actions workflows (deploy.yml + rollback.yml).
         Narrow sudo:
-          - schwarmplaner-restart-container <test|prod> [tag]
-          - schwarmplaner-deploy-backup <env> [label]
+          - schwarmplaner-restart-container prod [tag]
+          - schwarmplaner-deploy-backup prod [label]
       '';
     };
 
@@ -207,7 +207,7 @@ in
         }
       );
       default = { };
-      description = "Per-environment schwarmplaner instances (e.g. test, prod).";
+      description = "Per-environment schwarmplaner instances (production only on this host).";
     };
   };
 

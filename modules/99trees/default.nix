@@ -44,9 +44,9 @@ let
     LABEL="''${2:-backup}"
 
     case "$ENV" in
-      test|prod) ;;
+      prod) ;;
       *)
-        echo "usage: 99trees-deploy-backup <test|prod> [label]" >&2
+        echo "usage: 99trees-deploy-backup prod [label]" >&2
         exit 1
         ;;
     esac
@@ -157,8 +157,8 @@ in
       description = ''
         SSH public keys merged into the shared `deploy` user for 99trees
         GitHub Actions workflows. Narrow sudo:
-          - 99trees-restart-container <test|prod> [tag]
-          - 99trees-deploy-backup <env> [label]
+          - 99trees-restart-container prod [tag]
+          - 99trees-deploy-backup prod [label]
       '';
     };
 
