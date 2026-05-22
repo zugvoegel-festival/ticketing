@@ -1,5 +1,13 @@
 # Zugvögel Festival Infrastructure
 
+> **MIGRATION NOTICE (Phase 2 complete):** The NixOS configuration for `pretix-server-01`
+> has been migrated to the dedicated infrastructure repo at `../infrastructure` (private:
+> `manuliner/infrastructure`).
+> **This repository is now a read-only reference.** Do NOT deploy from here — use
+> `infrastructure/deploy-machine.sh pretix-server-01` instead.
+> This directory will be cleaned up in Phase 5 (after the first successful deploy from the
+> infrastructure repo is confirmed stable).
+
 A comprehensive NixOS-based deployment for event management infrastructure, designed for the Zugvögel Festival. This repository provides a complete, production-ready setup for ticketing, volunteer management, task organization, and supporting services.
 
 ## 🚀 Features
